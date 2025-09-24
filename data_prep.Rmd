@@ -1,0 +1,40 @@
+---
+title: "data_prep"
+author: "Anisha Nagpal"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(mgcv)
+library(marginaleffects)
+library(nlme)
+library(performance)
+library(haven)
+#detach("package:menstrualcycleR", unload = TRUE)
+remotes::install_github("eisenlohrmoullab/menstrualcycleR")
+library(menstrualcycleR)
+library(haven)
+```
+
+
+```{r}
+dat3_oura = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/02_datasets/CLEAR3_OURA/03_cleaned_data/Oura_cycle_bw_02_05_2025.rds")
+
+dat3_oura <- dat3_oura[ , -c(197:345, 451:515)]
+dat3_oura <- dat3_oura %>%
+  mutate(workday = case_when(
+    workday == 1 ~ 1,
+    workday == 2 ~ 0)
+         )
+```
+
+```{r}
+dat3_oura = menstrualcycleR::pacts_scaling(dat3_oura, id, daterated, menses, ovtoday)
+```
+
+```{r}
+saveRDS(dat3_oura, "~/Library/CloudStorage/Box-Box/01 - CLEAR Lab Collaborative Folder - Unlocked/CLEAR3_BROWN/Datasets/clear3daily_oura.rds")
+```
+
