@@ -24,6 +24,8 @@ library(rmcorr)
 library(performance)
 library(lme4)
 library(ggplot2)
+
+names(df)
 ```
 
 ```{r}
@@ -260,4 +262,59 @@ meanptsteps_histogram <- ggplot(person_means, aes(x = mean_steps_person)) +
 ggsave("output/meanptsteps_histogram.png", plot = meanptsteps_histogram, width = 6, height = 4)
 
 
+```
+
+```{r}
+?cycledata_check
+
+# Analyze symptom data availability
+data_available_info <- cycledata_check(
+  df, 
+  symptom_columns = c("Oura_Activity_steps")
+)
+
+# View results
+#print(data_available_info$by_id)
+#print(data_available_info$overall)
+print(data_available_info$data_symptom_plots$Oura_Activity_steps)
+
+```
+
+```{r}
+?cycle_plot
+
+step_plot <- cycle_plot(
+  df,
+  "Oura_Activity_steps", 
+  centering = "menses",
+  include_impute = TRUE,
+  y_scale = "means",
+  rollingavg = 5,
+  align_val = "center",
+  se = FALSE
+)
+
+print(step_plot)
+
+```
+
+```{r}
+df$steps_log = log(df$Oura_Activity_steps + 1) #log-transforming our outcome variable symptom
+
+selected_vars <- c("cyclic_time_impute", "steps_log" )
+datSX <- df[complete.cases(df[selected_vars]), ]
+
+datSX$id = as.factor(datSX$id) # ALWAYS factor id before putting it in a gam formula
+
+stepgamm1 <- mgcv::gam(
+  steps_log ~ 
+    s(cyclic_time_impute, bs = "cc") + #fixed slope
+    s(id, bs = 're') + #random intercept
+    s(cyclic_time_impute, id, bs=c("re", "cc")), #random slope
+  knots= list(cyclic_time_impute = c(-1,1)), #telling it that this is ov
+  data = datSX, 
+  method = 'REML'
+)
+
+summary(stepgamm1)
 ```
