@@ -205,9 +205,59 @@ if (exists("df") && exists("corrplotlist")) {
 
   print(correlation_heatmap)
   
-  ggsave("output/correlation_heatmap.png", plot = correlation_heatmap, width = 9, height = 6)
+  #ggsave("output/correlation_heatmap.png", plot = correlation_heatmap, width = 9, height = 6)
 
 } else {
   warning("Data 'df' or 'corrplotlist' not found.")
 }
+```
+```{r}
+
+# Descriptive statistics
+df %>%
+  summarise(
+    mean_steps = mean(Oura_Activity_steps, na.rm = TRUE),
+    median_steps = median(Oura_Activity_steps, na.rm = TRUE),
+    sd_steps = sd(Oura_Activity_steps, na.rm = TRUE),
+    min_steps = min(Oura_Activity_steps, na.rm = TRUE),
+    max_steps = max(Oura_Activity_steps, na.rm = TRUE)
+  )
+
+# Histogram
+dailysteps_histogram <- ggplot(df, aes(x = Oura_Activity_steps)) +
+  geom_histogram(binwidth = 1000, fill = "lavender", color = "black") +
+  labs(
+    title = "Histogram of Daily Steps",
+    x = "Steps",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+dailysteps_histogram
+
+ggsave("output/dailysteps_histogram.png", plot = dailysteps_histogram, width = 6, height = 4)
+
+
+# Compute average steps per person
+person_means <- df %>%
+  group_by(id) %>%
+  summarise(mean_steps_person = mean(Oura_Activity_steps, na.rm = TRUE)) %>%
+  ungroup()
+
+# Count unique ids
+n_ids <- n_distinct(person_means$id)
+
+# Histogram of person averages with n ids in the title
+meanptsteps_histogram <- ggplot(person_means, aes(x = mean_steps_person)) +
+  geom_histogram(binwidth = 1000, fill = "skyblue", color = "black") +
+  labs(
+    title = paste0("Histogram of Average Steps per Person (n = ", n_ids, " participants)"),
+    x = "Average Steps",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+ggsave("output/meanptsteps_histogram.png", plot = meanptsteps_histogram, width = 6, height = 4)
+
+
 ```
