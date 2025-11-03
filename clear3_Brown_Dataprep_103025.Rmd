@@ -24,6 +24,7 @@ library(rmcorr)
 library(performance)
 library(lme4)
 library(ggplot2)
+library(menstrualcycleR)
 
 names(df)
 ```
@@ -213,6 +214,9 @@ if (exists("df") && exists("corrplotlist")) {
   warning("Data 'df' or 'corrplotlist' not found.")
 }
 ```
+
+# Descriptvive step statistics and histograms 
+
 ```{r}
 
 # Descriptive statistics
@@ -264,7 +268,11 @@ ggsave("output/meanptsteps_histogram.png", plot = meanptsteps_histogram, width =
 
 ```
 
-```{r}
+### Cycle plots and GAMMs
+
+# Step plot data avail
+
+```{r step-plot, fig.height=8, fig.width=6, dpi=300}
 ?cycledata_check
 
 # Analyze symptom data availability
@@ -278,12 +286,24 @@ data_available_info <- cycledata_check(
 #print(data_available_info$overall)
 print(data_available_info$data_symptom_plots$Oura_Activity_steps)
 
+ggsave(
+  "output/step_data_avail.png",
+  plot = data_available_info$data_symptom_plots, 
+  width = 6,
+  height = 8,
+  dpi = 300
+)
+
 ```
+
+# Cycle plots
 
 ```{r}
 ?cycle_plot
 
-step_plot <- cycle_plot(
+#means
+
+step_plot_means <- cycle_plot(
   df,
   "Oura_Activity_steps", 
   centering = "menses",
@@ -294,7 +314,43 @@ step_plot <- cycle_plot(
   se = FALSE
 )
 
-print(step_plot)
+print(step_plot_means)
+
+#person-centered roll cycle plot w menstrual imputing
+step_plot_pcroll <- cycle_plot(
+  df,
+  "Oura_Activity_steps", 
+  centering = "menses",
+  include_impute = TRUE,
+  y_scale = "person-centered_roll",
+  rollingavg = 5,
+  align_val = "center",
+  se = FALSE
+)
+
+print(step_plot_pcroll)
+
+ggsave(
+  "output/step_plot_pcroll.png",
+  plot = step_plot_pcroll$plot
+)
+
+#person-centered roll cycle plot w/o menstrual imputing (ni = no impute)
+
+step_plot_pcrollni <- cycle_plot(
+  df,
+  "Oura_Activity_steps", 
+  centering = "menses",
+  include_impute = FALSE,
+  y_scale = "person-centered_roll",
+  rollingavg = 5,
+  align_val = "center",
+  se = FALSE
+)
+
+print(step_plot_pcrollni)
+
+
 
 ```
 
