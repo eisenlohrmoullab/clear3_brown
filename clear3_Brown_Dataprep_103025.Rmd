@@ -4,6 +4,8 @@ output: html_document
 date: "2025-09-24"
 ---
 
+https://eisenlohrmoullab.github.io/menstrualcycleR/articles/menstrualcycleR-overview.html
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -11,9 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ``` {r}
 df <- readRDS("data/clear3daily_oura.rds")
 ```
-
-
-# Make Figure 1. ICCs, Between- and Within-Person Associations of Study Variables
 
 ```{r corrheatmap, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
 # ===================================================================
@@ -28,6 +27,25 @@ library(menstrualcycleR)
 
 names(df)
 ```
+
+# Checking to see people with at least five days in each phase
+
+``` {r}
+
+df %>%
+  filter(!is.na(Oura_Activity_steps), scaled_cycleday_impute != 0) %>%
+  group_by(id) %>%
+  summarise(
+    follicular = sum(scaled_cycleday_impute > 0 & scaled_cycleday_impute < 1),
+    luteal     = sum(scaled_cycleday_impute < 0 & scaled_cycleday_impute > -1)
+  ) %>%
+  filter(follicular >= 5, luteal >= 5) %>%
+  nrow()
+
+```
+
+# Make Figure 1. ICCs, Between- and Within-Person Associations of Study Variables
+
 
 ```{r}
 # ===================================================================
@@ -286,13 +304,13 @@ data_available_info <- cycledata_check(
 #print(data_available_info$overall)
 print(data_available_info$data_symptom_plots$Oura_Activity_steps)
 
-ggsave(
-  "output/step_data_avail.png",
-  plot = data_available_info$data_symptom_plots, 
-  width = 6,
-  height = 8,
-  dpi = 300
-)
+#ggsave(
+ # "output/step_data_avail.png",
+  #plot = data_available_info$data_symptom_plots, 
+  #width = 6,
+  #height = 8,
+  #dpi = 300
+#)
 
 ```
 
@@ -328,6 +346,7 @@ step_plot_pcroll <- cycle_plot(
   se = FALSE
 )
 
+
 print(step_plot_pcroll)
 
 ggsave(
@@ -349,9 +368,6 @@ step_plot_pcrollni <- cycle_plot(
 )
 
 print(step_plot_pcrollni)
-
-
-
 ```
 
 ```{r}
@@ -373,4 +389,112 @@ stepgamm1 <- mgcv::gam(
 )
 
 summary(stepgamm1)
+```
+The intercept represents the average value of the log-transformed symptom when all smooth terms are at their reference level.
+
+s(cyclic time impute): low edf (.01) = less complex; less wiggles
+  - Big p-value: not significant for nonlinearity at population level
+  
+s(id): look at differences in baseline symptoms; high edf and low p value = lots of baseline differencs in step count
+
+s(cyclic_time_impute,id): looks at individual-specific deviations from average sx trajectory across cycle; high edf low p = significant nonlinear heterogeneity in sx changes throughout MC
+
+R-sq.(adj) =  0.518: 53% of variance explained by model 
+Deviance explained = 53%: 53% of the outcome variability is accounted for
+
+REML = 4078.6: will need later for picking SMMs
+
+n = 2793: observations in model after listwise deletion
+
+
+Partitioning variance 
+```{r}
+var.part = gam.hp::gam.hp(stepgamm1)
+var.part$hierarchical.partitioning 
+```
+                                         Unique Average.share Individual I.perc(%)
+s(cyclic_time_impute,bs="cc")            0.0000        0.0003     0.0003      0.06
+s(id,bs="re")                            0.4094        0.0558     0.4652     87.71
+s(cyclic_time_impute,id,bs=c("re","cc")) 0.0090        0.0559     0.0649     12.24
+
+Individual column output: 
+
+s(cyclic_time_impute):
+The fixed effect of cycle time explains .03% (0.0003) of total outcome variance. This shows that a teenytiny portion of outcome variation is captured by average, population-level cycle dynamics.
+
+s(id, bs = “re”):
+The random intercept explains 46.42% (0.4652) of total outcome variance. This reflects between-person differences in average outcome level—i.e., individual baselines not explained by cycle dynamics but could be explained by unmeasured trait variables (e.g. age, BMI).
+
+s(cyclic_time_impute, id):
+The random slope effect explains 5.6% (0.0559) of total outcome variance. This reflects individual differences in trajectories of the outcome across the cycle, above and beyond the average pattern.
+
+```{r}
+# Step 1: Create the data frame
+variance_df <- data.frame(
+  Component = c("Fixed effect of the cycle", 
+                "Random slope of the cycle", 
+                "Within-person residual"),
+  Term = c("s(cyclic_time_impute)", 
+           "s(cyclic_time_impute, id)", 
+           "Residual (1 - Deviance Explained)"),
+  Proportion = c(0.0003, 0.4652, 0.0649)  
+)
+
+# Normalize 
+variance_df <- variance_df %>%
+  mutate(Percent = round(Proportion / sum(Proportion) * 100, 1),
+         Label = paste0(Component, "\n", Percent, "%"))
+
+# Step 2: Display table
+knitr::kable(variance_df[, c("Component", "Term", "Proportion")], 
+      col.names = c("Component", "Model Term", "Proportion of Within-Person Variance"))
+```
+Component	Model Term	Proportion of Within-Person Variance
+Fixed effect of the cycle	s(cyclic_time_impute)	0.0003
+Random slope of the cycle	s(cyclic_time_impute, id)	0.4652
+Within-person residual	Residual (1 - Deviance Explained)	0.0649
+
+
+```{r}
+# Step 3: Create pie chart
+ggplot(variance_df, ggplot2::aes(x = "", y = Proportion, fill = Label)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Total Within-person Variance") +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+# Step 1: Create the data frame
+variance_df <- data.frame(
+  Component = c("Fixed effect of the cycle", 
+                "Random slope of the cycle"),
+  Term = c("s(cyclic_time_impute)", 
+           "s(cyclic_time_impute, id)"),
+  Proportion = c(.0003, 0.4652)  
+)
+
+# Normalize 
+variance_df <- variance_df %>%
+  mutate(Percent = round(Proportion / sum(Proportion) * 100, 1),
+         Label = paste0(Component, "\n", Percent, "%"))
+
+# Step 2: Display table
+knitr::kable(variance_df[, c("Component", "Term", "Proportion")], 
+      col.names = c("Component", "Model Term", "Within-Person Variance Accounted for by the Cycle"))
+```
+Component	Model Term	Within-Person Variance Accounted for by the Cycle
+Fixed effect of the cycle	s(cyclic_time_impute)	0.0003
+Random slope of the cycle	s(cyclic_time_impute, id)	0.4652
+
+```{r}
+
+# Step 3: Create pie chart
+ggplot(variance_df,aes(x = "", y = Proportion, fill = Label)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Within-person Variance accounted for by the cycle") +
+  theme(legend.title = element_blank())
 ```
