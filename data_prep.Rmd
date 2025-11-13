@@ -30,9 +30,49 @@ dat3_oura <- dat3_oura %>%
          )
 ```
 
+
+```{r}
+dat3_oura %>%
+  mutate(id_date = paste(id, daterated)) %>%
+  group_by(id_date)%>%
+  filter(n()>1) %>%
+  arrange(id_date) %>%
+  select(A, menses, m2mcount, scaled_cycleday)
+
+
+dat3_oura <- dat3_oura %>%
+  mutate(id_date = paste(id, daterated)) %>%
+  group_by(id_date) %>%
+  filter(m2mcount == min(m2mcount)) %>%
+  ungroup()
+
+
+dat3_oura %>%
+  group_by(id_date)%>%
+  filter(n()>1) %>%
+  arrange(id_date) %>%
+  select(A, menses, m2mcount, scaled_cycleday)
+
+
+dat3_oura %>%
+  group_by(id_date)%>%
+  arrange(id_date) %>%
+  select(A, menses, m2mcount, scaled_cycleday)
+```
+
+
 ```{r}
 dat3_oura = menstrualcycleR::pacts_scaling(dat3_oura, id, daterated, menses, ovtoday)
 ```
+
+
+```{r}
+check = cycledata_check(dat3_oura, "Oura_Sleep_TST")
+
+check$by_id
+
+```
+
 
 ```{r}
 saveRDS(dat3_oura, "~/Library/CloudStorage/Box-Box/01 - CLEAR Lab Collaborative Folder - Unlocked/CLEAR3_BROWN/Datasets/clear3daily_oura.rds")
