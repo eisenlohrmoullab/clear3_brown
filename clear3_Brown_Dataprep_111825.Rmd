@@ -191,13 +191,12 @@ generate_correlation_heatmap <- function(
 # Technical names mapped to the desired "pretty" labels
 corrplotlist <- c(
   "Oura_Activity_steps" = "Steps",
-  "rest" = "Rest",
-  "inactive" = "Inactive",
-  "non_wear" = "Non Wear",
-  "immrisk_concplan" = "Imm Risk with Concrete Plan",
-  "immrisk_capablesafe" = "Imm Risk Capable of Safe",
-  "immrisk_someoneknows" = "Imm Risk Someone Knows",
-  "immrisk_intendkill" = "Imm Risk Intent to Kill"
+  "DRSP1_depblue" = "Depressed",
+  "DRSP4_anxious" = "Anxious",
+  "DRSP7b_irritable" = "Irritable",
+  "physicalpain" = "Pain",
+  "ASIQ9_wishdead" = "Passive SI",
+  "wantedkill" = "Active SI"
 )
 
 # This assumes `cycle_df_scaled` exists in your environment
