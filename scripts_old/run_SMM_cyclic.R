@@ -143,9 +143,7 @@ run_smm_cyclic <- function(
     stop(glue("Not enough participants with valid trajectories for g = {g}. Needed {g}, got {length(id_vec)}."))
   }
   
-  # Use raw trajectory_matrix (already person-centered from GAM predictions)
-  # No additional transformations - cluster based on within-person trajectory shapes only
-  km_res <- kmeans(trajectory_matrix, centers = g, nstart = 25)
+  km_res <- kmeans(scale(trajectory_matrix), centers = g)
   cluster_map <- data.frame(id = id_vec, group = as.character(km_res$cluster))
   df <- dplyr::left_join(df, cluster_map, by = "id")
   
