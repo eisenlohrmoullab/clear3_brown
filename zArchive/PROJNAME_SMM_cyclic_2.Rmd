@@ -1,0 +1,1213 @@
+---
+title: "SMM Analysis Pipeline - Production Version"
+output: html_document
+---
+
+# 🚀 SMM Analysis Pipeline - Production Version
+
+> 👉 **START HERE** - This is the main analysis script for production use.
+> 
+> 📚 **First time?** See [`docs/examples/QUICK_START.md`](docs/examples/QUICK_START.md) for a detailed guide.
+> 
+> 🧪 **Want to test first?** Use [`TEST_SMM_cyclic.Rmd`](TEST_SMM_cyclic.Rmd) with example configurations.
+
+---
+
+## Description
+
+This script performs **Smooth Mixture Modeling (SMM)** analysis on cyclic hormone and behavioral data across the menstrual cycle.
+
+**Pipeline Features:**
+- ✅ Multiple centering methods (menses or ovulation)
+- ✅ **Per-outcome configuration:** Each variable can have its own winsorization and rolling average settings
+- ✅ **Flexible data preprocessing:** Choose none, 3-day, or 5-day rolling averages per outcome
+- ✅ Multiple outcome variables analyzed simultaneously
+- ✅ Automatic model comparison with BIC
+- ✅ Publication-ready GAM visualizations
+- ✅ Automated group probability comparisons within each configuration
+- ✅ Comprehensive logging and error handling
+- ✅ Optional parallel processing for speed
+
+**Requirements:**
+- Data frame named `cycle_df_scaled` loaded in your R environment
+- Required columns: `id`, time variables (menses & ovulation), outcome variables
+- All helper scripts in the same directory (auto-loaded)
+
+**Quick Usage:**
+1. Load your data: `cycle_df_scaled <- read.csv("your_data.csv")`
+2. Configure parameters in Section 2 below:
+   - Set project name and paths
+   - **Configure each outcome** with winsorization and rolling average settings
+   - Choose centering methods to compare
+3. Run entire script: Click "Run All" in RStudio or knit to HTML
+
+**Outputs:**
+- Analysis results: `base_save_dir/project_name/smm/YYYYMMDD/outcome/winsorized|unwinsorized/rollXXX/centering/`
+- Group probability comparisons: `base_save_dir/project_name/smm/YYYYMMDD/group_probability_comparisons/`
+- Log file: `./logs/project_name_smm_analysis_YYYYMMDD_HHMMSS.log`
+
+For more information, see: `README_SMM_ENHANCED.md`
+
+---
+
+## 0. LOAD DATAFRAME "cycle_df_scaled"
+
+```{r}
+# Load your data file here
+
+# Example: load("path/to/your/data.rdata")
+
+# Note: This is the path on Tory's machine (Primary user)
+load("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CYCLEADHD/03_analytic_projects/CYCADHD_PRIMARY/03_code_dataedits_output/0_dataprep_output/00_cleaned_datasets/adhd_daily_scaled_20250929.rdata") 
+
+
+
+# Enter the file path for your data file; note that it must include pacts_scaling() output and there must be 5 observations per phase per person to include.
+
+```
+
+
+
+## 1. SETUP: CHECK DEPENDENCIES AND LOAD UTILITIES
+
+```{r setup, message=FALSE}
+# Check and install required packages
+source("scripts/check_dependencies.R")
+check_and_install_packages()
+
+# Load validation and logging utilities
+source("scripts/validation_utils.R")
+source("scripts/logging_utils.R")
+
+# Load all helper functions from centralized script
+source("scripts/load_helpers.R")
+```
+
+---
+
+## 2. USER PARAMETERS: SET YOUR ANALYSIS CHOICES HERE
+
+### Step A: Define Project Name
+
+Set a brief project identifier (e.g., "CLEAR2", "CLEAR3", "TCS", "ADHDCYC").  
+This will be used as a prefix for all output files to avoid confusion across studies.
+
+```{r user-params}
+project_name <- "TESTADHD22"  # Change this to your project's short name
+
+# Initialize logging with project name
+timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+log_file_path <- init_logger(log_file = paste0(project_name, "_smm_analysis_", timestamp, ".log"))
+log_info(paste("Project Name:", project_name))
+```
+
+### Step B: Define Time Variables
+
+Set the exact variable name for menses-centered analysis and ovulation-centered analysis.
+
+```{r time-vars}
+menses_time_variable <- "cyclic_time_impute"  # Or "cyclic_time"
+ovulation_time_variable <- "cyclic_time_imp_ov" # Or "cyclic_time_ov"
+```
+
+### Step C: Define Outcomes Configuration and Save Directory
+
+Configure each outcome variable with its analysis settings:
+- **winsorized**: TRUE to apply winsorization, FALSE for raw data
+- **rolling_avg**: Rolling average window - "none" (no smoothing), "3day", or "5day"
+
+```{r outcomes-save}
+# Define outcome configurations
+# Each outcome gets individual settings for winsorization and rolling average
+outcomes_config <- data.frame(
+  outcome = c("E2", "P4", "LH", "CSS_Inatt"), 
+              #"CSS_HypImp", "score_robot_rev", "score_pinball_rev", "DRSP_1", "DRSP_4", "DRSP7", "DRSP_22"),
+  winsorized = c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE),  # TRUE = apply winsorization
+  rolling_avg = c("5day", "5day", "3day", "3day", "3day", "3day", "3day", "3day", "3day", "3day", "3day"),  
+  stringsAsFactors = FALSE
+)
+
+# Extract the outcome list for convenience
+outcomes_to_run <- outcomes_config$outcome
+
+base_save_dir <- "~/CLEAR Lab Repositories/cycle_pipeline_template/output" # Change this to your desired output directory
+```
+
+### Step D: Define Centering Methods
+
+```{r centering}
+centering_methods <- c("menses", "ovulation")
+```
+
+### Step E: Parallelization Settings (Optional)
+
+Set to TRUE to enable parallel processing across outcomes.
+
+```{r parallel}
+use_parallel <- FALSE  # Set to TRUE to enable parallelization
+n_cores <- 10  # Number of cores to use (adjust based on your system)
+```
+
+---
+
+## 2b. VALIDATE PARAMETERS
+
+```{r validate-params}
+log_info("Validating user parameters...")
+
+# Validate rolling_avg values in outcomes_config
+valid_rolling_values <- c("none", "3day", "5day")
+invalid_rolling <- outcomes_config$rolling_avg[!outcomes_config$rolling_avg %in% valid_rolling_values]
+if (length(invalid_rolling) > 0) {
+  stop(paste0("Invalid rolling_avg values found: ", paste(unique(invalid_rolling), collapse=", "), 
+              ". Must be one of: ", paste(valid_rolling_values, collapse=", ")))
+}
+
+validation_result <- validate_parameters(
+  data = cycle_df_scaled,
+  menses_time_variable = menses_time_variable,
+  ovulation_time_variable = ovulation_time_variable,
+  outcomes_to_run = outcomes_to_run,
+  base_save_dir = base_save_dir
+)
+
+# Update parameters based on validation
+outcomes_to_run <- validation_result$outcomes_to_run
+
+# Update outcomes_config to only include validated outcomes
+outcomes_config <- outcomes_config %>% 
+  filter(outcome %in% outcomes_to_run)
+
+base_save_dir <- validation_result$base_save_dir
+
+# Add project name as subdirectory to keep outputs organized by project
+base_save_dir <- file.path(base_save_dir, project_name)
+if (!dir.exists(base_save_dir)) {
+  dir.create(base_save_dir, recursive = TRUE, showWarnings = FALSE)
+  log_info(paste("Created project-specific directory:", base_save_dir))
+}
+
+log_success("All parameters validated successfully!")
+```
+
+---
+
+## 3. HELPER FUNCTIONS
+
+### Preprocessing (Log Transform, Center, Smooth)
+
+```{r preprocess-fn}
+preprocess_outcome <- function(data, outcome, rolling_avg = "5day") {
+  outcome_log <- paste0(outcome, "_log")
+  outcome_log_d <- paste0(outcome, "_log.d")
+  outcome_roll <- paste0(outcome, "_log.d.roll")
+  
+  # Determine rolling window size based on rolling_avg parameter
+  if (rolling_avg == "3day") {
+    before_pts <- 1
+    after_pts <- 1
+  } else if (rolling_avg == "5day") {
+    before_pts <- 2
+    after_pts <- 2
+  } else if (rolling_avg == "none") {
+    before_pts <- 0
+    after_pts <- 0
+  } else {
+    stop(paste0("Invalid rolling_avg parameter: '", rolling_avg, "'. Must be 'none', '3day', or '5day'."))
+  }
+  
+  data %>%
+    mutate(id = as.factor(id)) %>%
+    mutate(!!outcome_log := log(.data[[outcome]] + 1)) %>%
+    group_by(id) %>%
+    mutate(!!outcome_log_d := .data[[outcome_log]] - mean(.data[[outcome_log]], na.rm = TRUE)) %>%
+    mutate(!!outcome_roll := if (rolling_avg == "none") {
+      .data[[outcome_log_d]]  # No smoothing - use the centered values directly
+    } else {
+      slider::slide_dbl(
+        .x = .data[[outcome_log_d]],
+        .f = mean,
+        .before = before_pts,
+        .after = after_pts,
+        .partial = TRUE,
+        .na_rm = TRUE
+      )
+    }) %>%
+    ungroup()
+}
+```
+
+### Outlier Management (Winsorization)
+
+```{r winsorize-fn}
+winsorize_by_person <- function(data, outcome, percentile = 0.95) {
+  outcome_win <- paste0(outcome, "_win")
+  
+  data %>%
+    group_by(id) %>%
+    mutate(
+      threshold = quantile(.data[[outcome]], percentile, na.rm = TRUE),
+      !!outcome_win := pmin(.data[[outcome]], threshold, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    select(-threshold)
+}
+```
+
+---
+
+## 4. AUTOMATED ANALYSIS LOOP
+
+**This script assumes a dataframe named `cycle_df_scaled` is loaded in your environment!**
+
+```{r analysis-loop}
+log_info("Setting up analysis combinations...")
+
+# Create analysis combinations using per-outcome configuration
+# Each outcome has its own winsorized and rolling_avg settings from outcomes_config
+analysis_combinations <- expand.grid(
+  outcome = outcomes_config$outcome,
+  centering = centering_methods,
+  stringsAsFactors = FALSE
+)
+
+# Merge in the outcome-specific settings (winsorized, rolling_avg)
+analysis_combinations <- analysis_combinations %>%
+  left_join(outcomes_config, by = "outcome")
+
+log_info(paste0("Total analyses to run: ", nrow(analysis_combinations)))
+
+# Create empty lists to store the results from the loop
+all_smm_results <- list()
+all_bic_results <- list()
+all_gam_results <- list()
+
+# --- Define the analysis function for potential parallel execution ---
+run_single_analysis <- function(i, analysis_combinations, cycle_df_scaled, 
+                                menses_time_variable, ovulation_time_variable, 
+                                base_save_dir, project_name) {
+  
+  current_outcome <- analysis_combinations$outcome[i]
+  current_centering <- analysis_combinations$centering[i]
+  current_winsorized <- analysis_combinations$winsorized[i]
+  current_rolling_avg <- analysis_combinations$rolling_avg[i]
+  
+  current_time_var <- ifelse(current_centering == "menses", menses_time_variable, ovulation_time_variable)
+  
+  winsorized_label <- if (current_winsorized) "winsorized" else "unwinsorized"
+  rolling_label <- paste0("roll", current_rolling_avg)
+  
+  log_info(paste0("Starting analysis for outcome: ", current_outcome, " (", current_centering, "-centered, ", 
+                  winsorized_label, ", ", current_rolling_avg, " rolling avg using '", current_time_var, "')"))
+  
+  # --- Step A: Winsorize the raw outcome variable (only if winsorized = TRUE) ---
+  if (current_winsorized) {
+    winsorized_data <- winsorize_by_person(data = cycle_df_scaled, outcome = current_outcome)
+    winsorized_outcome_name <- paste0(current_outcome, "_win")
+  } else {
+    # Skip winsorization step - use original outcome
+    winsorized_data <- cycle_df_scaled
+    winsorized_outcome_name <- current_outcome
+  }
+  
+  # --- Step B: Preprocess the outcome (winsorized or original) with specified rolling average ---
+  preprocessed_data <- preprocess_outcome(data = winsorized_data, outcome = winsorized_outcome_name, rolling_avg = current_rolling_avg)
+  
+  # --- Step C: Subset the data ---
+  subset_result <- subset_by_phase_cyclic(
+    data = preprocessed_data,
+    outcome = winsorized_outcome_name,
+    time_var = current_time_var,
+    min_obs = 5
+  )
+  data_for_analysis <- subset_result$data_subset
+  
+  # --- ROBUSTNESS CHECK 1: Ensure sufficient data after subsetting ---
+  if (nrow(data_for_analysis) < 50 || dplyr::n_distinct(data_for_analysis$id) < 20) {
+    log_warn(paste0("SKIPPING: Insufficient data for '", current_outcome, "' after subsetting."))
+    return(NULL)
+  }
+  
+  # --- Step D: Run the SMM ---
+  log_info(paste0("Running SMM for ", current_outcome, " (", current_centering, ", ", winsorized_label, ", ", current_rolling_avg, ")..."))
+  smm_results <- run_smm_cyclic(
+    data = data_for_analysis,
+    outcome = winsorized_outcome_name, 
+    time_var = current_time_var,
+    g = 2:5,
+    plot = TRUE,
+    centering = current_centering,
+    save_dir = base_save_dir,
+    winsorized = current_winsorized,
+    rolling_avg = current_rolling_avg
+  )
+  
+  # --- ROBUSTNESS CHECK 2: Ensure the SMM run was successful ---
+  if (is.null(smm_results) || length(smm_results$all_results) == 0) {
+    log_warn(paste0("SKIPPING subsequent steps: SMM failed to produce results for '", current_outcome, "'."))
+    return(NULL)
+  }
+  
+  list_name <- paste0(current_outcome, "_", current_centering, "_", winsorized_label, "_", rolling_label)
+  
+  # --- Step E: Compare BIC ---
+  log_info(paste0("Comparing BIC for ", current_outcome, " (", current_centering, ", ", winsorized_label, ", ", current_rolling_avg, ")..."))
+  bic_result <- compare_bic_cyclic(
+    data = data_for_analysis,
+    outcome = winsorized_outcome_name, 
+    time_var = current_time_var,
+    centering = current_centering,
+    smm_results = smm_results,
+    save_dir = base_save_dir,
+    winsorized = current_winsorized,
+    rolling_avg = current_rolling_avg
+  )
+  
+  # --- Step F: Run GAMs for Visualization ---
+  log_info(paste0("Running GAMs for ", current_outcome, " (", current_centering, ", ", winsorized_label, ", ", current_rolling_avg, ")..."))
+  gams <- model_plot_modx_gam_cyclic(
+    data = data_for_analysis,
+    outcome = winsorized_outcome_name, 
+    time_var = current_time_var,
+    smm_result = smm_results,
+    centering = current_centering,
+    save_dir = base_save_dir,
+    winsorized = current_winsorized,
+    rolling_avg = current_rolling_avg
+  )
+  
+  log_success(paste0("Finished analysis for outcome: ", current_outcome, " (", current_centering, "-centered, ", winsorized_label, ", ", current_rolling_avg, ")"))
+  
+  return(list(
+    list_name = list_name,
+    smm_results = smm_results,
+    bic_result = bic_result,
+    gams = gams
+  ))
+}
+```
+
+---
+
+## Execute analyses (with optional parallelization)
+
+```{r execute-analyses}
+if (use_parallel && nrow(analysis_combinations) > 1) {
+  log_info(paste0("Running analyses in parallel using ", n_cores, " cores..."))
+  
+  # Setup parallel backend
+  library(foreach)
+  library(doParallel)
+  cl <- makeCluster(n_cores)
+  registerDoParallel(cl)
+  
+  # Run analyses in parallel with error handling
+  # .errorhandling = "pass" ensures errors in one worker don't crash all workers
+  # This prevents "error reading from connection" issues during result collection
+  results <- foreach(i = 1:nrow(analysis_combinations), 
+                     .packages = c("dplyr", "mgcv", "gamm4", "ggplot2", "glue", "slider", "zoo", "tidyr"),
+                     .errorhandling = "pass") %dopar% {
+    run_single_analysis(i, analysis_combinations, cycle_df_scaled, 
+                       menses_time_variable, ovulation_time_variable, base_save_dir, project_name)
+  }
+  
+  # Stop cluster - wrapped in tryCatch to ensure it always executes
+  tryCatch({
+    stopCluster(cl)
+  }, error = function(e) {
+    warning(paste("Error stopping cluster:", e$message))
+  })
+  
+  # Collect results and check for errors
+  n_errors <- 0
+  n_success <- 0
+  for (i in seq_along(results)) {
+    result <- results[[i]]
+    
+    # Check if this result is an error object
+    if (inherits(result, "error")) {
+      n_errors <- n_errors + 1
+      log_warn(paste0("Analysis ", i, " (", 
+                      analysis_combinations$outcome[i], ", ",
+                      analysis_combinations$centering[i], ") failed with error: ", 
+                      result$message))
+    } else if (!is.null(result)) {
+      n_success <- n_success + 1
+      all_smm_results[[result$list_name]] <- result$smm_results
+      all_bic_results[[result$list_name]] <- result$bic_result
+      all_gam_results[[result$list_name]] <- result$gams
+    }
+  }
+  
+  # Report summary
+  if (n_errors > 0) {
+    log_warn(paste0("Parallel execution completed with ", n_errors, " error(s) and ", 
+                    n_success, " success(es). Check log for details."))
+  } else {
+    log_success(paste0("All ", n_success, " parallel analyses completed successfully!"))
+  }
+  
+} else {
+  # Run analyses sequentially
+  log_info("Running analyses sequentially...")
+  
+  for (i in 1:nrow(analysis_combinations)) {
+    result <- run_single_analysis(i, analysis_combinations, cycle_df_scaled, 
+                                  menses_time_variable, ovulation_time_variable, base_save_dir, project_name)
+    
+    if (!is.null(result)) {
+      all_smm_results[[result$list_name]] <- result$smm_results
+      all_bic_results[[result$list_name]] <- result$bic_result
+      all_gam_results[[result$list_name]] <- result$gams
+    }
+  }
+}
+
+log_success("ALL OUTCOMES PROCESSED!")
+```
+
+---
+
+## 5. CREATE CROSS-VERSION COMPARISON REPORTS
+
+**NOTE:** With the new per-outcome configuration approach, this section compares results across different **centering methods** for each outcome (menses vs ovulation). Since winsorization and rolling average are now configured per-outcome in Section 2, they are not compared across versions.
+
+This section generates comprehensive comparison reports:
+
+**CSV/PNG Summary Report:**
+- BIC rankings across centering methods (menses vs ovulation)
+- GAM plots for the top 2 groupings from each centering method
+
+**PDF Outcome Reports (NEW):**
+- One PDF per outcome comparing centering methods
+- Cover page displays BIC comparison across centering methods
+- Each page shows GAM plots for that centering method
+- Smaller BIC plot on each page for easy comparison
+
+**IMPORTANT:** These comparison scripts were designed for the old approach where each outcome was analyzed with all 4 combinations (2 centering × 2 winsorization). With the new per-outcome configuration, you may see fewer comparisons or need to manually inspect the outputs. Future versions will update these scripts to better handle the new approach.
+
+```{r comparison-report, eval=FALSE}
+# NOTE: eval=FALSE by default since comparison reports may need manual review with new configuration approach
+# Set eval=TRUE if you want to generate comparison reports
+
+log_info("Creating cross-version comparison reports...")
+
+# Source the comparison report functions
+source("scripts/create_comparison_report.R")
+source("scripts/create_outcome_pdf_report.R")
+
+# Generate the traditional CSV/PNG comparison report
+comparison_report <- create_comparison_report(
+  base_save_dir = base_save_dir,
+  outcomes = outcomes_config,  # Pass full config with rolling_avg settings
+  date_folder = format(Sys.Date(), "%Y%m%d")
+)
+
+log_success("CSV/PNG comparison report created!")
+log_info(paste0("Report saved to: ", comparison_report$report_dir))
+
+# Generate the new per-outcome PDF reports
+log_info("Creating per-outcome PDF comparison reports...")
+pdf_report <- create_outcome_pdf_report(
+  base_save_dir = base_save_dir,
+  outcomes = outcomes_config,  # Pass full config with rolling_avg settings
+  date_folder = format(Sys.Date(), "%Y%m%d")
+)
+
+log_success("PDF comparison reports created!")
+log_info(paste0("PDF reports saved to: ", pdf_report$report_dir))
+```
+
+---
+
+## 6. SELECT SPECIFIC SMM CONFIGURATION FOR EACH OUTCOME (OPTIONAL)
+
+**This section is OPTIONAL.** You can either:
+- **Option A**: Select specific configurations per outcome (recommended) - follow steps below
+- **Option B**: Skip selection and compare all configurations - set `use_selected_configs <- FALSE`
+
+---
+
+### Why Select Specific Configurations?
+
+Different outcomes often fit better with different analysis configurations:
+- **Hormones (E2, P4, LH)** typically show clearer patterns when centered around ovulation
+- **Symptoms/behaviors** may show clearer patterns when centered around menses
+
+**Note:** Winsorization and rolling average settings were configured per-outcome in Section 2. This section only allows you to select the centering method (menses vs ovulation) for downstream comparisons.
+
+By selecting the best-fitting centering for each outcome (based on BIC from Section 5), you get:
+- More accurate group assignments
+- Cleaner probability comparisons (Section 8)
+- Results that reflect the true cyclic patterns for each measure
+
+---
+
+### How to Select Configurations
+
+**Step 1:** Review the BIC comparison tables and plots from Section 5
+- Look for the centering with the **lowest BIC** for each outcome
+- Lower BIC = better model fit
+
+**Step 2:** Decide which centering to use for each outcome
+- Consider both BIC values and theoretical reasons
+- Example: E2 might have lowest BIC with ovulation-centered
+
+**Step 3:** Edit the code below to specify your selections
+
+---
+
+### Common Selection Patterns
+
+Here are typical patterns to guide your selections:
+
+**Pattern 1: All outcomes use the same centering**
+```r
+# All outcomes use ovulation-centered
+outcome_config_selections <- data.frame(
+  outcome = outcomes_to_run,
+  centering = "ovulation",
+  stringsAsFactors = FALSE
+) %>%
+  left_join(outcomes_config %>% select(outcome, winsorized, rolling_avg), by = "outcome")
+```
+
+**Pattern 2: Hormones vs Symptoms have different centering**
+```r
+# Start with default (e.g., menses-centered)
+outcome_config_selections <- data.frame(
+  outcome = outcomes_to_run,
+  centering = "menses",
+  stringsAsFactors = FALSE
+) %>%
+  left_join(outcomes_config %>% select(outcome, winsorized, rolling_avg), by = "outcome")
+
+# Change hormones to ovulation-centered
+hormones <- c("E2", "P4", "LH")
+outcome_config_selections$centering[outcome_config_selections$outcome %in% hormones] <- "ovulation"
+```
+
+**Pattern 3: Individual customization per outcome**
+```r
+# Specify exactly what centering each outcome should use
+outcome_config_selections <- data.frame(
+  outcome = c("E2", "P4", "CSS_Inatt", "CSS_HypImp", "DRSP1"),
+  centering = c("ovulation", "ovulation", "menses", "menses", "menses"),
+  stringsAsFactors = FALSE
+) %>%
+  left_join(outcomes_config %>% select(outcome, winsorized, rolling_avg), by = "outcome")
+```
+
+---
+
+```{r select-configurations}
+log_info("Configuration selection for downstream analyses...")
+
+# =============================================================================
+# CHOOSE YOUR OPTION
+# =============================================================================
+
+# Set to TRUE to select specific centering per outcome (recommended)
+# Set to FALSE to use all centering methods for all outcomes (original behavior)
+use_selected_configs <- TRUE
+
+# =============================================================================
+# SPECIFY YOUR CONFIGURATION SELECTIONS
+# =============================================================================
+
+if (use_selected_configs) {
+  
+  # ----------------------------------------------------------------------------
+  # EDIT THIS: Specify which centering to use for each outcome
+  # ----------------------------------------------------------------------------
+  
+  # Default: All outcomes use ovulation-centered
+  # Customize this based on your BIC results from Section 5
+  outcome_config_selections <- data.frame(
+    outcome = outcomes_to_run,
+    centering = "menses",     # "menses" or "ovulation"
+    stringsAsFactors = FALSE
+  ) %>%
+    left_join(outcomes_config %>% select(outcome, winsorized, rolling_avg), by = "outcome")
+  
+  # ----------------------------------------------------------------------------
+  # EXAMPLES: Uncomment and customize as needed
+  # ----------------------------------------------------------------------------
+  
+  # Example 1: Set E2 to use ovulation-centered
+  # outcome_config_selections$centering[outcome_config_selections$outcome == "E2"] <- "ovulation"
+  
+  # Example 2: Set all hormones to use ovulation-centered
+  # hormones <- c("E2", "P4", "LH")
+  # outcome_config_selections$centering[outcome_config_selections$outcome %in% hormones] <- "ovulation"
+  
+  # Example 3: Set CSS_Inatt to use menses-centered
+  # outcome_config_selections$centering[outcome_config_selections$outcome == "CSS_Inatt"] <- "menses"
+  
+  # ----------------------------------------------------------------------------
+  # VALIDATION: Check that selected configurations exist
+  # ----------------------------------------------------------------------------
+  
+  log_info("Configuration selections:")
+  print(outcome_config_selections)
+  
+  log_info("Validating that selected configurations exist in results...")
+  valid_selections <- TRUE
+  
+  for (i in 1:nrow(outcome_config_selections)) {
+    outcome <- outcome_config_selections$outcome[i]
+    centering <- outcome_config_selections$centering[i]
+    winsorized <- outcome_config_selections$winsorized[i]
+    rolling_avg <- outcome_config_selections$rolling_avg[i]
+    winsorized_label <- if (winsorized) "winsorized" else "unwinsorized"
+    rolling_label <- paste0("roll", rolling_avg)
+    list_name <- paste0(outcome, "_", centering, "_", winsorized_label, "_", rolling_label)
+    
+    if (!(list_name %in% names(all_smm_results))) {
+      log_warn(paste0("WARNING: Configuration not found for ", outcome, ": ", list_name))
+      valid_selections <- FALSE
+    }
+  }
+  
+  if (valid_selections) {
+    log_success("✓ All selected configurations found in results!")
+  } else {
+    log_warn("⚠ Some configurations were not found. Check your selections.")
+    log_info("Available configurations:")
+    print(names(all_smm_results))
+  }
+  
+} else {
+  log_info("Skipping configuration selection - will use all centering methods in Section 8")
+  outcome_config_selections <- NULL
+}
+```
+
+---
+
+## 7. GROUP LABELING (OPTIONAL BUT RECOMMENDED)
+
+**This section is OPTIONAL but highly recommended.** You can either:
+- **Option A**: Label groups now with meaningful names (recommended) - follow steps below
+- **Option B**: Skip labeling - comparisons will use numeric group labels (1, 2, 3, etc.)
+
+---
+
+### Why Label Groups?
+
+SMM assigns arbitrary numeric labels (1, 2, 3) to groups. These numbers have no inherent meaning:
+- Group 1 for E2 might be "Periovulatory-Peak" 
+- Group 1 for CSS_Inatt might be "Perimenstrual-Onset"
+- The numbers don't tell you about the pattern
+
+**Benefits of labeling:**
+- ✓ Results are immediately interpretable ("Luteal-Peak" vs "Group 2")
+- ✓ Comparison tables show meaningful pattern names
+- ✓ Cross-outcome patterns are easier to understand
+- ✓ Better for presentations and publications
+- ✓ Reproducible - labels are saved to CSV files
+
+---
+
+### When to Label
+
+**Label BEFORE Section 8** (probability comparisons) so that comparison results use your meaningful labels from the start.
+
+If you label after comparisons, you'll need to re-run Section 8 to see labels in results.
+
+---
+
+### What Groups to Label
+
+**If you selected specific configurations in Section 6:**
+- Label only the configurations you selected
+- The code below automatically handles this
+
+**If you skipped Section 6 (use_selected_configs = FALSE):**
+- You can label all 4 configurations, or just the ones you care about
+- Modify the code below to specify which configurations to label
+
+---
+
+### Common Label Examples
+
+Use these as inspiration when labeling your groups:
+
+**Timing-based labels:**
+- Perimenstrual-Onset, Perimenstrual-Peak
+- Follicular-Peak, Follicular-Rise
+- Periovulatory-Peak, Ovulation-Peak
+- Luteal-Peak, Luteal-High, Mid-Luteal-Peak
+- Luteal-Decline
+
+**Pattern-based labels:**
+- Stable, Flat, Stable-Low, Stable-High
+- Dual-Peak, Biphasic
+- Gradual-Rise, Gradual-Decline
+- High-Variable, Low-Variable
+
+**Magnitude-based labels:**
+- High-Sustained, Low-Sustained
+- Moderate-Variable, High-Fluctuating
+
+**Combined labels:**
+- Perimenstrual-High-Variable
+- Luteal-Stable-High
+- Follicular-to-Luteal-Rise
+
+---
+
+### How to Label Groups
+
+You have two options:
+
+**Option A: Interactive Mode (Easiest)**
+1. Set `eval=TRUE` in the chunk header below
+2. Run the chunk
+3. For each outcome and group, you'll be prompted to:
+   - View the plot (if available)
+   - Enter a descriptive label
+   - Confirm and move to next group
+
+**Option B: CSV Template Mode (For Teams/Batch Processing)**
+1. Generate a CSV template with all groups listed
+2. Fill in labels in spreadsheet software (Excel, Google Sheets)
+3. Import the completed template
+
+Both options save labels to CSV files that are automatically used in Section 8.
+
+---
+
+### Step-by-Step: Interactive Labeling
+
+```{r group-labeling-interactive, eval=TRUE}
+# Load the group labeling script
+source("scripts/label_smm_groups.R")
+
+# =============================================================================
+# INTERACTIVE LABELING
+# =============================================================================
+# This will prompt you to label each group for each outcome.
+# Set eval=TRUE in the chunk header above to enable this.
+
+if (use_selected_configs && !is.null(outcome_config_selections)) {
+  
+  # ----------------------------------------------------------------------------
+  # Automatically labels only the configurations you selected in Section 6
+  # ----------------------------------------------------------------------------
+  
+  log_info("Labeling groups for selected configurations...")
+  
+  # Get unique configurations from your selections
+  unique_selected_configs <- outcome_config_selections %>%
+    select(centering, winsorized, rolling_avg) %>%
+    distinct()
+  
+  # Label each configuration
+  for (i in 1:nrow(unique_selected_configs)) {
+    current_centering <- unique_selected_configs$centering[i]
+    current_winsorized <- unique_selected_configs$winsorized[i]
+    current_rolling_avg <- unique_selected_configs$rolling_avg[i]
+    winsorized_label <- if (current_winsorized) "winsorized" else "unwinsorized"
+    
+    log_info(paste0("Configuration ", i, " of ", nrow(unique_selected_configs), 
+                    ": ", current_centering, "-centered, ", winsorized_label, ", ", current_rolling_avg, " rolling avg"))
+    
+    # Get outcomes that use this configuration
+    selected_outcomes <- outcome_config_selections$outcome[
+      outcome_config_selections$centering == current_centering &
+      outcome_config_selections$winsorized == current_winsorized &
+      outcome_config_selections$rolling_avg == current_rolling_avg
+    ]
+    
+    log_info(paste0("  Outcomes: ", paste(selected_outcomes, collapse = ", ")))
+    
+    # Interactive labeling for these outcomes
+    batch_label_analyses(
+      base_save_dir = base_save_dir,
+      outcomes = selected_outcomes,
+      centering = current_centering,
+      winsorized = current_winsorized,
+      rolling_avg = current_rolling_avg,
+      g_values = 2:4,  # Label solutions for g=2, 3, 4, 5 groups
+      date_folder = format(Sys.Date(), "%Y%m%d"),
+      interactive = TRUE
+    )
+  }
+  
+  log_success("✓ Labeling complete for all selected configurations!")
+  
+} else {
+  
+  # ----------------------------------------------------------------------------
+  # Manual configuration specification (if you skipped Section 6)
+  # ----------------------------------------------------------------------------
+  
+  log_info("Labeling groups without configuration selection...")
+  log_info("You can label specific configurations by uncommenting examples below")
+  
+  # Example 1: Label menses-centered, winsorized
+  # batch_label_analyses(
+  #   base_save_dir = base_save_dir,
+  #   outcomes = outcomes_to_run,
+  #   centering = "menses",
+  #   winsorized = TRUE,
+  #   g_values = 2:5,
+  #   date_folder = format(Sys.Date(), "%Y%m%d"),
+  #   interactive = TRUE
+  # )
+  
+  # Example 2: Label ovulation-centered, winsorized
+  # batch_label_analyses(
+  #   base_save_dir = base_save_dir,
+  #   outcomes = outcomes_to_run,
+  #   centering = "ovulation",
+  #   winsorized = TRUE,
+  #   g_values = 2:5,
+  #   date_folder = format(Sys.Date(), "%Y%m%d"),
+  #   interactive = TRUE
+  # )
+  
+  # Repeat for other configurations as needed:
+  # - Menses-centered, unwinsorized: centering = "menses", winsorized = FALSE
+  # - Ovulation-centered, unwinsorized: centering = "ovulation", winsorized = FALSE
+}
+```
+
+---
+
+### Alternative: CSV Template Mode
+
+Use this approach if you want to:
+- Label groups offline or in a spreadsheet
+- Share labeling work across team members
+- Keep a template for consistency across studies
+
+```{r group-labeling-template, eval=FALSE}
+# Load the group labeling script
+source("scripts/label_smm_groups.R")
+
+# =============================================================================
+# CSV TEMPLATE GENERATION
+# =============================================================================
+# This generates a CSV file with all groups listed.
+# You fill in the 'group_label' column, then import it.
+
+if (use_selected_configs && !is.null(outcome_config_selections)) {
+  
+  # ----------------------------------------------------------------------------
+  # Generate templates for selected configurations
+  # ----------------------------------------------------------------------------
+  
+  # Get unique configurations from your selections
+  unique_selected_configs <- outcome_config_selections %>%
+    select(centering, winsorized) %>%
+    distinct()
+  
+  template_files <- list()
+  
+  # Generate a template for each configuration
+  for (i in 1:nrow(unique_selected_configs)) {
+    current_centering <- unique_selected_configs$centering[i]
+    current_winsorized <- unique_selected_configs$winsorized[i]
+    
+    # Get outcomes that use this configuration
+    selected_outcomes <- outcome_config_selections$outcome[
+      outcome_config_selections$centering == current_centering &
+      outcome_config_selections$winsorized == current_winsorized
+    ]
+    
+    # Generate template
+    template_file <- generate_label_template(
+      base_save_dir = base_save_dir,
+      outcomes = selected_outcomes,
+      centering = current_centering,
+      winsorized = current_winsorized,
+      g_values = 2:5,
+      date_folder = format(Sys.Date(), "%Y%m%d")
+    )
+    
+    template_files[[paste0(current_centering, "_", 
+                           if (current_winsorized) "winsorized" else "unwinsorized")]] <- template_file
+    
+    log_info(paste0("✓ Template generated: ", template_file))
+  }
+  
+  log_success("All templates generated!")
+  log_info("Next steps:")
+  log_info("  1. Open each CSV template file")
+  log_info("  2. Fill in the 'group_label' column with meaningful names")
+  log_info("  3. Save the CSV file")
+  log_info("  4. Import using the code below (uncomment and run)")
+  
+  # After filling out templates, uncomment to import:
+  # for (template_file in template_files) {
+  #   imported_labels <- import_labels_from_template(
+  #     template_file = template_file,
+  #     base_save_dir = base_save_dir,
+  #     date_folder = format(Sys.Date(), "%Y%m%d")
+  #   )
+  # }
+  
+} else {
+  
+  # ----------------------------------------------------------------------------
+  # Generate template for a specific configuration (manual)
+  # ----------------------------------------------------------------------------
+  
+  log_info("Generate template for specific configuration by uncommenting example below:")
+  
+  # Example: Generate template for menses-centered, winsorized
+  # template_file <- generate_label_template(
+  #   base_save_dir = base_save_dir,
+  #   outcomes = outcomes_to_run,
+  #   centering = "menses",
+  #   winsorized = TRUE,
+  #   g_values = 2:5,
+  #   date_folder = format(Sys.Date(), "%Y%m%d")
+  # )
+  # 
+  # log_info(paste0("Template generated: ", template_file))
+  # log_info("Fill in the 'group_label' column, then import using:")
+  # 
+  # # After filling out the template:
+  # imported_labels <- import_labels_from_template(
+  #   template_file = template_file,
+  #   base_save_dir = base_save_dir,
+  #   date_folder = format(Sys.Date(), "%Y%m%d")
+  # )
+}
+```
+
+---
+
+### Where Labels Are Saved
+
+Labels are saved in CSV files alongside your analysis results:
+
+```
+output/MYPROJECT/smm/20240101/
+└── E2/
+    └── winsorized/
+        └── menses_centered/
+            ├── E2_g3_class.csv
+            ├── E2_g3_group_labels.csv    ← Labels saved here
+            └── E2_g3_centered.png
+```
+
+These label files are automatically loaded by Section 8 (probability comparisons).
+
+---
+
+**📖 Additional resources:** For more examples and best practices, see `docs/examples/GROUP_LABELING_GUIDE.md`
+
+---
+
+## 8. GROUP PROBABILITY COMPARISONS
+
+This section analyzes relationships between group patterns across different outcomes.
+
+---
+
+### What This Section Does
+
+This analysis compares group memberships across outcomes to answer questions like:
+- Do people in the "Luteal-Peak" group for E2 also show "Luteal-Peak" for P4?
+- Are ADHD symptom patterns related to hormone patterns?
+- What are the common phenotypes across all measures?
+
+**Analyses performed:**
+
+1. **Consolidation**: Merges group assignments across outcomes
+2. **Best Solutions**: Identifies optimal number of groups (g) for each outcome based on BIC
+3. **Categorical Comparisons**: Chi-squared tests between all outcome pairs
+4. **Probability Correlations**: Heatmaps showing pattern relationships
+5. **Latent Profile Analysis**: Identifies phenotypes across outcomes (if tidyLPA available)
+
+---
+
+### What Gets Compared
+
+**If you selected configurations in Section 6:**
+- Only compares outcomes within the same configuration
+- Example: E2 and P4 (both ovulation-centered, winsorized) are compared
+- CSS_Inatt (menses-centered, unwinsorized) is analyzed separately
+
+**If you skipped Section 6 (use_selected_configs = FALSE):**
+- Runs comparisons for all 4 configurations separately
+- Within each configuration, compares all outcomes
+
+---
+
+### How Labels Are Used
+
+**If you labeled groups in Section 7:**
+- Comparison tables show meaningful labels ("Perimenstrual-Onset" vs "Luteal-Peak")
+- Heatmaps use pattern names instead of numbers
+- Results are immediately interpretable
+
+**If you skipped Section 7:**
+- Comparison tables show numeric labels (Group 1 vs Group 2)
+- Still valid statistically, just harder to interpret
+
+---
+
+### Output Files
+
+Results are saved to: `base_save_dir/smm/YYYYMMDD/group_probability_comparisons/config_label/`
+
+**Files created for each configuration:**
+
+1. **Consolidated Results**
+   - `{config}_consolidated_results.csv` - All group assignments merged
+   
+2. **Best Solutions**
+   - `{config}_best_solutions.csv` - Optimal g for each outcome
+   
+3. **Categorical Comparisons** (one set per outcome pair)
+   - `{config}_{outcome1}_vs_{outcome2}_contingency.csv` - Cross-tabulation
+   - `{config}_{outcome1}_vs_{outcome2}_chisquared.txt` - Test results
+   
+4. **Probability Correlations**
+   - `{config}_labeled_pattern_correlation_heatmap.png` - Main heatmap
+   - `{config}_probability_heatmap_group{g}.png` - Per-group heatmaps
+   
+5. **LPA Results** (if tidyLPA available)
+   - `{config}_lpa_fit_statistics.txt` - Model fit comparison
+   - `{config}_lpa_profiles.csv` - Phenotype assignments
+   
+6. **Summary**
+   - `{config}_labeled_pattern_summary.csv` - Documents all labeled patterns
+   - `{config}_summary_report.txt` - Comprehensive text summary
+
+---
+
+### Interpreting Results
+
+**Chi-squared tests (p < 0.05):**
+- Significant = group patterns are related across outcomes
+- Example: E2 "Luteal-Peak" and P4 "Luteal-Peak" co-occur
+
+**Probability correlations (r near 1.0 or -1.0):**
+- Positive correlation = patterns co-occur
+- Negative correlation = patterns are mutually exclusive
+- Near zero = patterns are independent
+
+**LPA profiles:**
+- Shows common phenotypes across outcomes
+- Example: "High E2 + High P4 + Low Symptoms" phenotype
+
+---
+
+```{r group-probability-comparisons}
+log_info("Running group probability comparisons...")
+
+# Source the group probability comparison function
+source("scripts/run_group_probability_comparisons.R")
+
+# =============================================================================
+# DETERMINE WHICH CONFIGURATIONS TO COMPARE
+# =============================================================================
+
+if (use_selected_configs && !is.null(outcome_config_selections)) {
+  
+  log_info("Using selected configurations from Section 6...")
+  
+  # Get unique configurations from your selections
+  unique_configs <- outcome_config_selections %>%
+    select(centering, winsorized, rolling_avg) %>%
+    distinct()
+  
+  log_info("Configurations to compare:")
+  print(unique_configs)
+  
+} else {
+  
+  log_info("Running comparisons on all available configurations...")
+  
+  # Get all unique configurations from the analysis combinations
+  unique_configs <- analysis_combinations %>%
+    select(centering, winsorized, rolling_avg) %>%
+    distinct()
+}
+
+log_info(paste0("Total configurations to process: ", nrow(unique_configs)))
+
+# =============================================================================
+# RUN COMPARISONS FOR EACH CONFIGURATION
+# =============================================================================
+
+# Store results for each configuration
+all_group_comparison_results <- list()
+
+for (i in 1:nrow(unique_configs)) {
+  current_centering <- unique_configs$centering[i]
+  current_winsorized <- unique_configs$winsorized[i]
+  current_rolling_avg <- unique_configs$rolling_avg[i]
+  winsorized_label <- if (current_winsorized) "winsorized" else "unwinsorized"
+  rolling_label <- paste0("roll", current_rolling_avg)
+  config_label <- paste0(current_centering, "_", winsorized_label, "_", rolling_label)
+  
+  log_info(paste0("Processing configuration ", i, " of ", nrow(unique_configs), 
+                  ": ", config_label))
+  
+  # Determine which outcomes to include for this configuration
+  if (use_selected_configs && !is.null(outcome_config_selections)) {
+    
+    # Only include outcomes that selected this configuration
+    config_outcomes <- outcome_config_selections$outcome[
+      outcome_config_selections$centering == current_centering &
+      outcome_config_selections$winsorized == current_winsorized &
+      outcome_config_selections$rolling_avg == current_rolling_avg
+    ]
+    
+    if (length(config_outcomes) == 0) {
+      log_info(paste0("  ⊘ No outcomes selected for ", config_label, ". Skipping."))
+      next
+    }
+    
+    log_info(paste0("  ✓ Including ", length(config_outcomes), " outcome(s): ", 
+                    paste(config_outcomes, collapse = ", ")))
+    
+  } else {
+    
+    # Include all outcomes (original behavior)
+    config_outcomes <- outcomes_to_run
+    log_info(paste0("  ✓ Including all ", length(config_outcomes), " outcomes"))
+  }
+  
+  # Run comparisons for this configuration
+  comparison_results <- run_group_probability_comparisons(
+    smm_results_list = all_smm_results,
+    bic_results_list = all_bic_results,
+    centering = current_centering,
+    winsorized = current_winsorized,
+    rolling_avg = current_rolling_avg,
+    base_save_dir = base_save_dir,
+    date_folder = format(Sys.Date(), "%Y%m%d"),
+    outcomes = config_outcomes  # Use filtered outcomes if selections were made
+  )
+  
+  # Store results
+  all_group_comparison_results[[config_label]] <- comparison_results
+  
+  # Report status
+  if (comparison_results$status == "success") {
+    log_success(paste0("✓ Completed comparisons for ", config_label))
+    log_info(paste0("  Results: ", comparison_results$report_dir))
+  } else {
+    log_warn(paste0("⚠ Comparisons for ", config_label, " ", 
+                    comparison_results$status, ": ", comparison_results$reason))
+  }
+}
+
+log_success("All group probability comparisons complete!")
+```
+
+---
+
+## Finalize Logging
+
+```{r finalize-logging}
+finalize_logger()
+```

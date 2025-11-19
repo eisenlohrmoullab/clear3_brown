@@ -1,0 +1,4881 @@
+---
+title: "SMM_cyclic"
+author: "Anisha Nagpal"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Libraries and functions
+
+```{r}
+library(mgcv)
+library(tidyverse)
+library(dplyr)
+library(menstrualcycleR)
+library(gam.hp)
+library(marginaleffects)
+library(gmodels)
+library(MASS)
+library(zoo)
+library(purrr)
+library(ggstatsplot)
+library(haven)
+
+conflicted::conflicts_prefer(
+  dplyr::filter, 
+  tidyr::complete, 
+  tidyr::expand, 
+  dplyr::lag, 
+  dplyr::select
+)
+  
+
+func_dir <- "/Users/anishan/Documents/CLEAR Lab Repos/sleep_Oura_baseline/SMM functions"
+
+list.files(func_dir, pattern = "\\.[rR]$", full.names = TRUE) %>% 
+  walk(source)
+
+cat("✅ All SMM function scripts sourced!")
+```
+
+
+# Import Data 
+
+```{r}
+
+dat3 = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/AIM_1_sleep_cycle/prepped_data/aim1data_oura.rds")
+  
+dat123 = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/AIM_1_sleep_cycle/prepped_data/aim1data123.rds")
+
+
+trait = haven::read_sav("/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/02_datasets/CLEAR3_TRAIT/03_cleaned_data/clear3trait_07_10_25.sav")
+trait123 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123ctrls_demotable.sav")
+trait1 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR1/02_datasets/CLEAR1_TRAIT/03_cleaned_data/2022-01-06_CLEAR1_TRAIT.sav")
+trait2 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR2/02_datasets/CLEAR2_TRAIT/03_cleaned_data/2024-07-09_clear2trait.sav")
+
+
+
+trait1 = trait1 %>% dplyr::select(id, caffeine)
+trait2 = trait2 %>% dplyr::select(id, caffeine, starts_with("IDASI"))
+```
+
+
+# Compute SI variables 
+
+```{r}
+create_SI_vars <- function(df) {
+  df %>%
+    mutate(
+      passiveSI = rowMeans(across(c(ASIQ1_betternotalive, ASIQ9_wishdead, ASIQ19_lifenotworth, wishsleep)), na.rm = TRUE),
+      activeSI = rowMeans(across(c(ASIQ2_thoughtkill, ASIQ17_thoughtkillnotdo, ASIQ25_notbetterkill, wantedkill)), na.rm = TRUE),
+      activeSI_log = log(activeSI + 1), 
+      passiveSI_log = log(passiveSI + 1)
+    ) %>%
+    group_by(id) %>%
+    mutate(
+      passiveSI.m = mean(passiveSI, na.rm = TRUE),
+      passiveSI.d = passiveSI - passiveSI.m, 
+      passiveSI_log.m = mean(passiveSI_log, na.rm = TRUE),
+      passiveSI_log.d = passiveSI_log - passiveSI_log.m,
+      activeSI.m = mean(activeSI, na.rm = TRUE),
+      activeSI.d = activeSI - activeSI.m, 
+      activeSI_log.m = mean(activeSI_log, na.rm = TRUE),
+      activeSI_log.d = activeSI_log - activeSI_log.m,
+      passiveSI.d.roll = if (sum(!is.na(passiveSI.d)) < 3) {
+        NA_real_
+      } else {
+        rollapply(passiveSI.d, width = 3, mean, fill = NA, align = "center")
+      }
+    ) %>%
+    ungroup()
+}
+
+dataset_list <- list(dat3)
+processed_list <- lapply(dataset_list, create_SI_vars)
+names(processed_list) <- c("dat3")
+list2env(processed_list, envir = .GlobalEnv)
+```
+
+```{r}
+create_SI_vars_lc <- function(df) {
+  df %>%
+    mutate(
+      passiveSI = rowMeans(across(c(asiq1_betternotalive, asiq9_wishdead, asiq19_lifenotworth, wishsleep)), na.rm = TRUE),
+      activeSI = rowMeans(across(c(asiq2_thoughtkill, asiq17_thoughtkillnotdo, asiq25_notbetterkill, wantedkill)), na.rm = TRUE),
+      activeSI_log = log(activeSI + 1), 
+      passiveSI_log = log(passiveSI + 1)
+    ) %>%
+    group_by(id) %>%
+    mutate(
+      passiveSI.m = mean(passiveSI, na.rm = TRUE),
+      passiveSI.d = passiveSI - passiveSI.m, 
+      passiveSI_log.m = mean(passiveSI_log, na.rm = TRUE),
+      passiveSI_log.d = passiveSI_log - passiveSI_log.m,
+      activeSI.m = mean(activeSI, na.rm = TRUE),
+      activeSI.d = activeSI - activeSI.m, 
+      activeSI_log.m = mean(activeSI_log, na.rm = TRUE),
+      activeSI_log.d = activeSI_log - activeSI_log.m,
+      passiveSI.d.roll = if (sum(!is.na(passiveSI.d)) < 3) {
+        NA_real_
+      } else {
+        rollapply(passiveSI.d, width = 3, mean, fill = NA, align = "center")
+      }
+    ) %>%
+    ungroup()
+}
+
+dataset_list <- list(dat123)
+processed_list <- lapply(dataset_list, create_SI_vars_lc)
+names(processed_list) <- c( "dat123")
+list2env(processed_list, envir = .GlobalEnv)
+```
+
+```{r}
+dat3 = menstrualcycleR::pacts_scaling(dat3, id, daterated, menses, ovtoday)
+
+dat123 = menstrualcycleR::pacts_scaling(dat123, id, daterated, menses, ovtoday)
+```
+
+
+
+
+# Modeling 
+
+## WASO 
+
+### Step 1: preprocess outcome/ subset by phase 
+
+```{r}
+
+dat3 = preprocess_outcome(dat3, "WASO_SRI_lag")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+WASO <- subset_by_phase_cyclic(
+  data = dat3,
+  outcome = "WASO_SRI_lag",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+WASO_data_subset <-WASO$data_subset
+
+```
+
+### Step 2:  run SMM
+
+```{r}
+resWASO_menses <- run_smm_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  g = 2:3, #this will check for solutions for 2-5 groups
+  d_inter = 20,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resWASO_ov <- run_smm_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  g = 2:3, #this will check for solutions for 2-5 groups
+  d_inter = 20,
+  k_smooth = 10,
+  plot = T, 
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+# WASO_data_subset$cyclic_perc = ((WASO_data_subset$cyclic_time_impute + 1) / 2)
+# WASO_data_subset$cyclic_5perc = round(WASO_data_subset$cyclic_perc / 0.05) * 0.05
+# 
+# WASO_data_subset %>% dplyr::select(c(id, daterated, cyclic_time_impute, cyclic_perc, cyclic_5perc))
+```
+
+### Step 3: compare BIC
+
+```{r}
+WASO_bic_result_menses <- compare_bic_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  centering = "menses",
+  smm_results = resWASO_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+WASO_bic_result_ov <- compare_bic_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  centering = "ovulation",
+  smm_results = resWASO_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+```
+
+### Step 4: Model Subgroup Membership as a Moderator
+
+```{r}
+WASOgams_menses = model_plot_modx_gam_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  smm_result = resWASO_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+WASOgams_ov = model_plot_modx_gam_cyclic(
+  data = WASO_data_subset,
+  outcome = "WASO_SRI_lag",
+  smm_result = resWASO_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+
+WASOgams_menses$gcv_plot
+```
+
+### trait comparisons 
+
+`
+```{r}
+WASOgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/WASO_SRI_lag/menses_centered/WASO_SRI_lag_g2_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+WASO_trait_sub = merge(trait, WASOgroups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/WASO_SRI_lag/trait_comparisons"
+```
+
+```{r}
+WASO_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = WASO_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+#IDASI_traumint
+kruskal.test(IDASI_traumint ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_lass ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+kruskal.test(IDASI_apploss ~ group, data = WASO_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_appgain ~ group, data = WASO_trait_sub)
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = WASO_trait_sub)
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = WASO_trait_sub)
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# test = kruskal.test(IDASI_mania ~ group, data = WASO_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = WASO_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = WASO_trait_sub)
+
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+WASO_trait_sub$caffeine = as.numeric(WASO_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = WASO_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+# ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+kruskal.test(age ~ group, data = WASO_trait_sub)
+ggbetweenstats(
+  data  = WASO_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+WASO_trait_sub <- WASO_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+WASO_trait_sub$group <- as.factor(WASO_trait_sub$group)
+WASO_trait_sub$race_eth_analysis <- as.factor(WASO_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+WASO_race_eth <- WASO_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(WASO_race_eth$group, WASO_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_WASO_race_eth <- stats::fisher.test(tab)
+print(res_WASO_race_eth)
+
+res_WASO_race_eth = capture.output(res_WASO_race_eth)
+
+writeLines(res_WASO_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = WASO_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = WASO_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+WASO_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+```
+
+
+```{r}
+WASO_data_trait2_sub <- dat3 %>%
+  dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
+                  "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
+
+WASO_data_trait2_sub <- WASO_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(DRSP1_depblue.m =  mean(DRSP1_depblue, na.rm = TRUE)) %>%
+    mutate(DRSPx_cramps.m =  mean(DRSPx_cramps, na.rm = TRUE)) %>%
+    mutate(DRSP4_anxious.m = mean(DRSP4_anxious, na.rm = TRUE)) %>% 
+    mutate(DRSP7b_irritable.m = mean(DRSP7b_irritable, na.rm = T)) %>%
+    mutate(PANAS_happy.m = mean(PANAS_happy, na.rm = T)) %>%
+    mutate(DRSPx_notenjoy.m = mean(DRSPx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(DRSP7_angirr.m = mean(DRSP7_angirr, na.rm = T)) %>%
+    mutate(SSRI.m = ifelse(mean(SSRI, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+WASO_data_trait2_sub <- WASO_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "DRSP1_depblue.m", "DRSPx_cramps.m", "DRSP4_anxious.m", "DRSP7b_irritable.m", "panas_happy.m","DRSPx_notenjoy.m",
+                  "SSRI.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "DRSP15_troublesleep.m", "passiveSI.m", "activeSI.m", "DRSP7_angirr.m", "PANAS_happy.m")))
+
+WASOgroups$id = as.factor(WASOgroups$id)
+
+WASO_data_trait2_sub = left_join(WASOgroups, WASO_data_trait2_sub, by = "id")
+
+WASO_data_trait2_sub = unique(WASO_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(DRSP1_depblue.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSP1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(DRSPx_cramps.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+# test = kruskal.test(DRSP4_anxious.m ~ group, data = WASO_data_trait2_sub)
+# test = capture.output(test)
+#writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSP4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "DRSP4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(DRSP7b_irritable.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSP7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(DRSP7_angirr.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSP7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+test = kruskal.test(PANAS_happy.m ~ group, data = WASO_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "panas_happy.m.txt"))
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = PANAS_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "panas_happy.m.png"))
+```
+
+
+```{r}
+
+kruskal.test(DRSPx_notenjoy.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+```{r}
+
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = SSRI.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+test = kruskal.test(numdrinks_yest.m ~ group, data = WASO_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+ggsave(file.path(trait_path, "mean_drinks.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = WASO_data_trait2_sub)
+
+ggbetweenstats(
+  data  = WASO_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+WASO_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(WASO_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
+WASO_data_trait2_sub$edu_clear123 <- as.factor(WASO_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+WASO_edu <- WASO_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(WASO_edu$group, WASO_edu$edu_clear123)
+print(tab)
+# Run test
+res_WASO_edu <- stats::fisher.test(tab)
+print(res_WASO_edu)
+
+res_WASO_edu = capture.output(res_WASO_edu)
+
+writeLines(res_WASO_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
+WASO_data_trait2_sub$sexorientation <- as.factor(WASO_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+WASO_sexo <- WASO_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(WASO_sexo$group, WASO_sexo$sexorientation)
+print(tab)
+# Run test
+res_WASO_sexo <- stats::fisher.test(tab)
+print(res_WASO_sexo)
+
+res_WASO_sexo = capture.output(res_WASO_sexo)
+
+writeLines(res_WASO_sexo, file.path(trait_path, "sexorientation.txt"))
+
+WASO_data_trait2_sub$sexorientation_labeled <- haven::as_factor(WASO_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
+WASO_data_trait2_sub$houseincomecat <- as.factor(WASO_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+WASO_income <- WASO_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(WASO_income$group, WASO_income$houseincomecat)
+print(tab)
+# Run test
+res_WASO_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_WASO_income)
+
+res_WASO_income = capture.output(res_WASO_income)
+
+writeLines(res_WASO_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = WASO_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
+
+
+
+
+## REM
+
+```{r}
+dat3 = preprocess_outcome(dat3, "rempercTST_SRI_lag")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+REM <- subset_by_phase_cyclic(
+  data = dat3,
+  outcome = "rempercTST_SRI_lag",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+REM_data_subset <-REM$data_subset
+
+
+resREM_menses <- run_smm_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resREM_ov <- run_smm_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = F,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+REM_bic_result_menses <- compare_bic_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  centering = "menses",
+  smm_results = resREM_menses, #put in the result object from step 3
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+REM_bic_result_ov <- compare_bic_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  centering = "ovulation",
+  smm_results = resREM_ov, #put in the result object from step 3
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+REMgams_menses = model_plot_modx_gam_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  smm_result = resREM_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+REMgams_ov = model_plot_modx_gam_cyclic(
+  data = REM_data_subset,
+  outcome = "rempercTST_SRI_lag",
+  smm_result = resREM_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+
+resREM_menses$all_results$`2`
+resREM_ov$all_results$`2`
+```
+
+### Trait Comparisons
+
+```{r}
+REMgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/rempercTST_SRI_lag/ovulation_centered/rempercTST_SRI_lag_g2_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+REM_trait_sub = merge(trait, REMgroups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/rempercTST_SRI_lag/trait_comparisons"
+```
+
+```{r}
+REM_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = REM_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+#IDASI_traumint
+kruskal.test(IDASI_traumint ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_lass ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+kruskal.test(IDASI_apploss ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_appgain ~ group, data = REM_trait_sub)
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = REM_trait_sub)
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = REM_trait_sub)
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# test = kruskal.test(IDASI_mania ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = REM_trait_sub)
+
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+REM_trait_sub$caffeine = as.numeric(REM_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+# ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+# test = kruskal.test(age ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/age.txt"))
+ggbetweenstats(
+  data  = REM_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/age.png"))
+```
+
+
+```{r}
+REM_trait_sub <- REM_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+REM_trait_sub$group <- as.factor(REM_trait_sub$group)
+REM_trait_sub$race_eth_analysis <- as.factor(REM_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+REM_race_eth <- REM_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(REM_race_eth$group, REM_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_REM_race_eth <- stats::fisher.test(tab)
+print(res_REM_race_eth)
+
+res_REM_race_eth = capture.output(res_REM_race_eth)
+
+writeLines(res_REM_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = REM_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = REM_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+REM_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+```
+
+
+```{r}
+REM_data_trait2_sub <- dat3 %>%
+  dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
+                  "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
+
+REM_data_trait2_sub <- REM_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(DRSP1_depblue.m =  mean(DRSP1_depblue, na.rm = TRUE)) %>%
+    mutate(DRSPx_cramps.m =  mean(DRSPx_cramps, na.rm = TRUE)) %>%
+    mutate(DRSP4_anxious.m = mean(DRSP4_anxious, na.rm = TRUE)) %>% 
+    mutate(DRSP7b_irritable.m = mean(DRSP7b_irritable, na.rm = T)) %>%
+    mutate(PANAS_happy.m = mean(PANAS_happy, na.rm = T)) %>%
+    mutate(DRSPx_notenjoy.m = mean(DRSPx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(DRSP7_angirr.m = mean(DRSP7_angirr, na.rm = T)) %>%
+    mutate(SSRI.m = ifelse(mean(SSRI, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+REM_data_trait2_sub <- REM_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "DRSP1_depblue.m", "DRSPx_cramps.m", "DRSP4_anxious.m", "DRSP7b_irritable.m", "panas_happy.m","DRSPx_notenjoy.m",
+                  "SSRI.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "DRSP15_troublesleep.m", "passiveSI.m", "activeSI.m", "DRSP7_angirr.m", "PANAS_happy.m")))
+
+REMgroups$id = as.factor(REMgroups$id)
+
+REM_data_trait2_sub = left_join(REMgroups, REM_data_trait2_sub, by = "id")
+
+REM_data_trait2_sub = unique(REM_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(DRSP1_depblue.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSP1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+# test = kruskal.test(age ~ group, data = REM_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/age.txt"))
+
+# ggsave(file.path(trait_path, "/age.png"))
+
+
+```{r}
+test = kruskal.test(DRSPx_cramps.m ~ group, data = REM_data_trait2_sub)
+test = capture.output(test)
+ writeLines(test, file.path(trait_path, "/cramps.txt"))
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "/cramps.png"))
+```
+
+
+```{r}
+
+# test = kruskal.test(DRSP4_anxious.m ~ group, data = REM_data_trait2_sub)
+# test = capture.output(test)
+#writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSP4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "DRSP4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(DRSP7b_irritable.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSP7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+```{r}
+kruskal.test(DRSP7_angirr.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSP7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+kruskal.test(PANAS_happy.m ~ group, data = REM_data_trait2_sub)
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = PANAS_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+
+kruskal.test(DRSPx_notenjoy.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+```{r}
+
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = SSRI.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+# test = kruskal.test(numdrinks_yest.m ~ group, data = REM_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+# ggsave(file.path(trait_path, "mean_drinks.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = REM_data_trait2_sub)
+
+ggbetweenstats(
+  data  = REM_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+REM_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(REM_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$edu_clear123 <- as.factor(REM_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+REM_edu <- REM_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(REM_edu$group, REM_edu$edu_clear123)
+print(tab)
+# Run test
+res_REM_edu <- stats::fisher.test(tab)
+print(res_REM_edu)
+
+res_REM_edu = capture.output(res_REM_edu)
+
+writeLines(res_REM_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$sexorientation <- as.factor(REM_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+REM_sexo <- REM_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(REM_sexo$group, REM_sexo$sexorientation)
+print(tab)
+# Run test
+res_REM_sexo <- stats::fisher.test(tab)
+print(res_REM_sexo)
+
+res_REM_sexo = capture.output(res_REM_sexo)
+
+writeLines(res_REM_sexo, file.path(trait_path, "sexorientation.txt"))
+
+REM_data_trait2_sub$sexorientation_labeled <- haven::as_factor(REM_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$houseincomecat <- as.factor(REM_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+REM_income <- REM_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(REM_income$group, REM_income$houseincomecat)
+print(tab)
+# Run test
+res_REM_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_REM_income)
+
+res_REM_income = capture.output(res_REM_income)
+
+writeLines(res_REM_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = REM_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+```{r}
+REM_data_trait2_sub %>% filter(group == 1) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
+
+REM_data_trait2_sub %>% filter(group == 2) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
+```
+
+
+
+## Sleep Efficiency 
+
+
+```{r}
+dat3 = preprocess_outcome(dat3, "Oura_Sleep_Efficiencyperc_lag")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+SE <- subset_by_phase_cyclic(
+  data = dat3,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+SE_data_subset <-SE$data_subset
+
+
+resSE_menses <- run_smm_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resSE_ov <- run_smm_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = F,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SE_bic_result_menses <- compare_bic_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  centering = "menses",
+  log_var = F,
+  smm_results = resSE_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SE_bic_result_ov <- compare_bic_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  centering = "ovulation",
+  log_var = F,
+  smm_results = resSE_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+SEgams_menses = model_plot_modx_gam_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  smm_result = resSE_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+SEgams_ov = model_plot_modx_gam_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_Efficiencyperc_lag",
+  smm_result = resSE_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+#### trait comparisons 
+
+```{r}
+SEgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/Oura_Sleep_Efficiencyperc_lag/menses_centered/Oura_Sleep_Efficiencyperc_lag_g3_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+SE_trait_sub = merge(trait, SEgroups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/Oura_Sleep_Efficiencyperc_lag/trait_comparisons"
+```
+
+```{r}
+SE_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = SE_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+#IDASI_traumint
+kruskal.test(IDASI_traumint ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_lass ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+kruskal.test(IDASI_apploss ~ group, data = SE_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_appgain ~ group, data = SE_trait_sub)
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = SE_trait_sub)
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = SE_trait_sub)
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# test = kruskal.test(IDASI_mania ~ group, data = SE_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = SE_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = SE_trait_sub)
+
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+SE_trait_sub$caffeine = as.numeric(SE_trait_sub$caffeine)
+test = kruskal.test(caffeine ~ group, data = SE_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+test = kruskal.test(age ~ group, data = SE_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/age.txt"))
+ggbetweenstats(
+  data  = SE_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(file.path(trait_path, "/age.png"))
+```
+
+
+```{r}
+SE_trait_sub <- SE_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+SE_trait_sub$group <- as.factor(SE_trait_sub$group)
+SE_trait_sub$race_eth_analysis <- as.factor(SE_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+SE_race_eth <- SE_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(SE_race_eth$group, SE_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_SE_race_eth <- stats::fisher.test(tab)
+print(res_SE_race_eth)
+
+res_SE_race_eth = capture.output(res_SE_race_eth)
+
+writeLines(res_SE_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = SE_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = SE_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+SE_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+```
+
+
+```{r}
+SE_data_trait2_sub <- dat3 %>%
+  dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
+                  "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
+
+SE_data_trait2_sub <- SE_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(DRSP1_depblue.m =  mean(DRSP1_depblue, na.rm = TRUE)) %>%
+    mutate(DRSPx_cramps.m =  mean(DRSPx_cramps, na.rm = TRUE)) %>%
+    mutate(DRSP4_anxious.m = mean(DRSP4_anxious, na.rm = TRUE)) %>% 
+    mutate(DRSP7b_irritable.m = mean(DRSP7b_irritable, na.rm = T)) %>%
+    mutate(PANAS_happy.m = mean(PANAS_happy, na.rm = T)) %>%
+    mutate(DRSPx_notenjoy.m = mean(DRSPx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(DRSP7_angirr.m = mean(DRSP7_angirr, na.rm = T)) %>%
+    mutate(SSRI.m = ifelse(mean(SSRI, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+SE_data_trait2_sub <- SE_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "DRSP1_depblue.m", "DRSPx_cramps.m", "DRSP4_anxious.m", "DRSP7b_irritable.m", "panas_happy.m","DRSPx_notenjoy.m",
+                  "SSRI.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "DRSP15_troublesleep.m", "passiveSI.m", "activeSI.m", "DRSP7_angirr.m", "PANAS_happy.m")))
+
+SEgroups$id = as.factor(SEgroups$id)
+
+SE_data_trait2_sub = left_join(SEgroups, SE_data_trait2_sub, by = "id")
+
+SE_data_trait2_sub = unique(SE_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(DRSP1_depblue.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSP1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(DRSPx_cramps.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+# test = kruskal.test(DRSP4_anxious.m ~ group, data = SE_data_trait2_sub)
+# test = capture.output(test)
+writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSP4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "DRSP4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(DRSP7b_irritable.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSP7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+```{r}
+kruskal.test(DRSP7_angirr.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSP7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+kruskal.test(PANAS_happy.m ~ group, data = SE_data_trait2_sub)
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = PANAS_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+
+kruskal.test(DRSPx_notenjoy.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = DRSPx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+```{r}
+
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = SSRI.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+# test = kruskal.test(numdrinks_yest.m ~ group, data = SE_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+# ggsave(file.path(trait_path, "mean_drinks.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = SE_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SE_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+SE_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(SE_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$edu_clear123 <- as.factor(SE_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+SE_edu <- SE_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(SE_edu$group, SE_edu$edu_clear123)
+print(tab)
+# Run test
+res_SE_edu <- stats::fisher.test(tab)
+print(res_SE_edu)
+
+res_SE_edu = capture.output(res_SE_edu)
+
+writeLines(res_SE_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$sexorientation <- as.factor(SE_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+SE_sexo <- SE_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(SE_sexo$group, SE_sexo$sexorientation)
+print(tab)
+# Run test
+res_SE_sexo <- stats::fisher.test(tab)
+print(res_SE_sexo)
+
+res_SE_sexo = capture.output(res_SE_sexo)
+
+writeLines(res_SE_sexo, file.path(trait_path, "sexorientation.txt"))
+
+SE_data_trait2_sub$sexorientation_labeled <- haven::as_factor(SE_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$houseincomecat <- as.factor(SE_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+SE_income <- SE_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(SE_income$group, SE_income$houseincomecat)
+print(tab)
+# Run test
+res_SE_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_SE_income)
+
+res_SE_income = capture.output(res_SE_income)
+
+writeLines(res_SE_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = SE_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
+
+
+
+## Sleep Onset Latency - no convergence 
+
+```{r}
+dat3 = preprocess_outcome(dat3, "Oura_Sleep_SleepOnsetLatency_lag")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+SOL <- subset_by_phase_cyclic(
+  data = dat3,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+SOL_data_subset <-SOL$data_subset
+
+
+resSOL_menses <- run_smm_cyclic(
+  data = SOL_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resSOL_ov <- run_smm_cyclic(
+  data = SE_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 50,
+  k_smooth = 10,
+  plot = T, 
+  log_var = T,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SOL_bic_result_menses <- compare_bic_cyclic(
+  data = SOL_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  centering = "menses",
+  smm_results = resSOL_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SOL_bic_result_ov <- compare_bic_cyclic(
+  data = SOL_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  centering = "ovulation",
+  smm_results = resSOL_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+SOLgams_menses = model_plot_modx_gam_cyclic(
+  data = SOL_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  smm_result = resSOL_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+SOLgams_ov = model_plot_modx_gam_cyclic(
+  data = SOL_data_subset,
+  outcome = "Oura_Sleep_SleepOnsetLatency_lag",
+  smm_result = resSOL_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+
+## Sleep Quality 
+
+```{r}
+dat123 = preprocess_outcome(dat123, "sleeplnquality")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+ SQ <- subset_by_phase_cyclic(
+  data = dat123,
+  outcome = "sleeplnquality",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+SQ_data_subset <-SQ$data_subset
+
+
+resSQ_menses <- run_smm_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resSQ_ov <- run_smm_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = F,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SQ_bic_result_menses <- compare_bic_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  centering = "menses",
+  smm_results = resSQ_menses, #put in the result object from step 3
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+SQ_bic_result_ov <- compare_bic_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  centering = "ovulation",
+  log_var = F,
+  smm_results = resSQ_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+SQgams_menses = model_plot_modx_gam_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  smm_result = resSQ_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+SQgams_ov = model_plot_modx_gam_cyclic(
+  data = SQ_data_subset,
+  outcome = "sleeplnquality",
+  smm_result = resSQ_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = F,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+### trait comparisons 
+
+```{r}
+SQgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/sleeplnquality/menses_centered/sleeplnquality_g3_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+SQ_trait_sub = merge(trait, SQgroups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/sleeplnquality/trait_comparisons"
+```
+
+```{r}
+SQ_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = SQ_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_traumint ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+test = kruskal.test(IDASI_lass ~ group, data = SQ_trait_sub)
+test = capture.output(test)
+write_lines(test, paste0(trait_path, "/lassitude.txt"))
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(paste0(trait_path, "/lassitude.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
+kruskal.test(IDASI_apploss ~ group, data = SQ_trait_sub)
+
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+# test = kruskal.test(IDASI_appgain ~ group, data = SQ_trait_sub)
+# test = capture.output(test)
+# write_lines(test, paste0(trait_path, "/appgain.txt"))
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(paste0(trait_path, "/appgain.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = SQ_trait_sub)
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = SQ_trait_sub)
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_mania ~ group, data = SQ_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = SQ_trait_sub)
+
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+SQ_trait_sub$caffeine = as.numeric(SQ_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+# ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+kruskal.test(age ~ group, data = SQ_trait_sub)
+ggbetweenstats(
+  data  = SQ_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+SQ_trait_sub <- SQ_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+SQ_trait_sub$group <- as.factor(SQ_trait_sub$group)
+SQ_trait_sub$race_eth_analysis <- as.factor(SQ_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+SQ_race_eth <- SQ_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(SQ_race_eth$group, SQ_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_SQ_race_eth <- stats::fisher.test(tab, simulate.p.value=TRUE)
+print(res_SQ_race_eth)
+
+res_SQ_race_eth = capture.output(res_SQ_race_eth)
+
+writeLines(res_SQ_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = SQ_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = SQ_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+
+```
+
+
+```{r}
+SQ_data_trait2_sub <- dat123 %>%
+  dplyr::select((c("id", "drsp1_depblue", "drspx_cramps", "drsp4_anxious", "drsp7b_irritable", "panas_happy","drspx_notenjoy",
+                  "ssri", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp15_troublesleep.m", "passiveSI.m", "activeSI.m", "drsp7_angirr", "sleeplnquality.m")))
+
+SQ_data_trait2_sub <- SQ_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(drsp1_depblue.m =  mean(drsp1_depblue, na.rm = TRUE)) %>%
+    mutate(drspx_cramps.m =  mean(drspx_cramps, na.rm = TRUE)) %>%
+    mutate(drsp4_anxious.m = mean(drsp4_anxious, na.rm = TRUE)) %>% 
+    mutate(drsp7b_irritable.m = mean(drsp7b_irritable, na.rm = T)) %>%
+    mutate(panas_happy.m = mean(panas_happy, na.rm = T)) %>%
+    mutate(drspx_notenjoy.m = mean(drspx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(drsp7_angirr.m = mean(drsp7_angirr, na.rm = T)) %>%
+    mutate(ssri.m = ifelse(mean(ssri, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+SQ_data_trait2_sub <- SQ_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "drsp1_depblue.m", "drspx_cramps.m", "drsp4_anxious.m", "drsp7b_irritable.m", "panas_happy.m","drspx_notenjoy.m",
+                  "ssri.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp11_lethtired.m", "passiveSI.m", "activeSI.m", "drsp7_angirr.m", "sleeplnquality.m")))
+SQgroups$id = as.factor(SQgroups$id)
+SQ_data_trait2_sub = left_join(SQgroups, SQ_data_trait2_sub, by = "id")
+
+SQ_data_trait2_sub = unique(SQ_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(drsp1_depblue.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drsp1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(drspx_cramps.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drspx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+# test = kruskal.test(drsp4_anxious.m ~ group, data = SQ_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drsp4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "drsp4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(drsp7b_irritable.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drsp7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+```{r}
+test = kruskal.test(drsp7_angirr.m ~ group, data = SQ_data_trait2_sub)
+
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drsp7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
+```
+
+
+```{r}
+
+test = kruskal.test(panas_happy.m ~ group, data = SQ_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "panashappy.m.txt"))
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = panas_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "panashappy.m.png"))
+```
+
+
+```{r}
+
+test = kruskal.test(drspx_notenjoy.m ~ group, data = SQ_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = drspx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "notenjoy.m.png"))
+```
+
+```{r}
+
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = ssri.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+kruskal.test(numdrinks_yest.m ~ group, data = SQ_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+#ggsave(file.path(trait_path, "numdrinks_yest.m.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = SQ_data_trait2_sub)
+
+ggbetweenstats(
+  data  = SQ_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+SQ_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(SQ_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$edu_clear123 <- as.factor(SQ_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+SQ_edu <- SQ_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(SQ_edu$group, SQ_edu$edu_clear123)
+print(tab)
+# Run test
+res_SQ_edu <- stats::fisher.test(tab)
+print(res_SQ_edu)
+
+res_SQ_edu = capture.output(res_SQ_edu)
+
+writeLines(res_SQ_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$sexorientation <- as.factor(SQ_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+SQ_sexo <- SQ_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(SQ_sexo$group, SQ_sexo$sexorientation)
+print(tab)
+# Run test
+res_SQ_sexo <- stats::fisher.test(tab)
+print(res_SQ_sexo)
+
+res_SQ_sexo = capture.output(res_SQ_sexo)
+
+writeLines(res_SQ_sexo, file.path(trait_path, "sexorientation.txt"))
+
+SQ_data_trait2_sub$sexorientation_labeled <- haven::as_factor(SQ_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$houseincomecat <- as.factor(SQ_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+SQ_income <- SQ_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(SQ_income$group, SQ_income$houseincomecat)
+print(tab)
+# Run test
+res_SQ_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_SQ_income)
+
+res_SQ_income = capture.output(res_SQ_income)
+
+writeLines(res_SQ_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = SQ_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
+
+
+
+## DRSP 11 Fatigue 
+
+```{r}
+dat123 = preprocess_outcome(dat123, "drsp11_lethtired")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+ D11 <- subset_by_phase_cyclic(
+  data = dat123,
+  outcome = "drsp11_lethtired",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+D11_data_subset <-D11$data_subset
+
+
+resD11_menses <- run_smm_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resD11_ov <- run_smm_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = T,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D11_bic_result_menses <- compare_bic_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  centering = "menses",
+  smm_results = resD11_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D11_bic_result_ov <- compare_bic_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  centering = "ovulation",
+  smm_results = resD11_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+D11gams_menses = model_plot_modx_gam_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  smm_result = resD11_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+D11gams_ov = model_plot_modx_gam_cyclic(
+  data = D11_data_subset,
+  outcome = "drsp11_lethtired",
+  smm_result = resD11_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+
+### trait comparisons 
+
+```{r}
+d11groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp11_lethtired/ovulation_centered/drsp11_lethtired_g3_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+D11_trait_sub = merge(trait, d11groups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp11_lethtired/trait_comparisons"
+```
+
+
+```{r}
+D11_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = D11_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_traumint ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+# test = kruskal.test(IDASI_lass ~ group, data = D11_trait_sub)
+# test = capture.output(test)
+# write_lines(test, paste0(trait_path, "/lassitude.txt"))
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(paste0(trait_path, "/lassitude.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
+kruskal.test(IDASI_apploss ~ group, data = D11_trait_sub)
+
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+# test = kruskal.test(IDASI_appgain ~ group, data = D11_trait_sub)
+# test = capture.output(test)
+# write_lines(test, paste0(trait_path, "/appgain.txt"))
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(paste0(trait_path, "/appgain.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = D11_trait_sub)
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = D11_trait_sub)
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_mania ~ group, data = D11_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = D11_trait_sub)
+
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+D11_trait_sub$caffeine = as.numeric(D11_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+# ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+kruskal.test(age ~ group, data = D11_trait_sub)
+ggbetweenstats(
+  data  = D11_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+D11_trait_sub <- D11_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+D11_trait_sub$group <- as.factor(D11_trait_sub$group)
+D11_trait_sub$race_eth_analysis <- as.factor(D11_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+D11_race_eth <- D11_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(D11_race_eth$group, D11_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_D11_race_eth <- stats::fisher.test(tab)
+print(res_D11_race_eth)
+
+res_D11_race_eth = capture.output(res_D11_race_eth)
+
+writeLines(res_D11_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = D11_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = D11_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+```
+
+
+```{r}
+drsp11_data_trait2_sub <- dat123 %>%
+  dplyr::select((c("id", "drsp1_depblue", "drspx_cramps", "drsp4_anxious", "drsp7b_irritable", "panas_happy","drspx_notenjoy",
+                  "ssri", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp15_troublesleep.m", "passiveSI.m", "activeSI.m", "drsp7_angirr")))
+
+drsp11_data_trait2_sub <- drsp11_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(drsp1_depblue.m =  mean(drsp1_depblue, na.rm = TRUE)) %>%
+    mutate(drspx_cramps.m =  mean(drspx_cramps, na.rm = TRUE)) %>%
+    mutate(drsp4_anxious.m = mean(drsp4_anxious, na.rm = TRUE)) %>% 
+    mutate(drsp7b_irritable.m = mean(drsp7b_irritable, na.rm = T)) %>%
+    mutate(panas_happy.m = mean(panas_happy, na.rm = T)) %>%
+    mutate(drspx_notenjoy.m = mean(drspx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(drsp7_angirr.m = mean(drsp7_angirr, na.rm = T)) %>%
+    mutate(ssri.m = ifelse(mean(ssri, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+drsp11_data_trait2_sub <- drsp11_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "drsp1_depblue.m", "drspx_cramps.m", "drsp4_anxious.m", "drsp7b_irritable.m", "panas_happy.m","drspx_notenjoy.m",
+                  "ssri.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp11_lethtired.m", "passiveSI.m", "activeSI.m", "drsp7_angirr.m")))
+d11groups$id = as.factor(d11groups$id)
+drsp11_data_trait2_sub = left_join(d11groups, drsp11_data_trait2_sub, by = "id")
+
+drsp11_data_trait2_sub = unique(drsp11_data_trait2_sub)
+```
+
+```{r}
+test = kruskal.test(passiveSI.m ~ group, data = drsp11_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/passiveSI.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "/passiveSI.m.png"))
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = drsp11_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(drsp1_depblue.m ~ group, data = drsp11_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/DRSP1.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drsp1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+ggsave(file.path(trait_path, "/DRSP1.m.png"))
+
+```
+
+
+```{r}
+kruskal.test(drspx_cramps.m ~ group, data = drsp11_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drspx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+# test = kruskal.test(drsp4_anxious.m ~ group, data = drsp11_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drsp4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "drsp4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(drsp7b_irritable.m ~ group, data = drsp11_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drsp7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+```{r}
+test = kruskal.test(drsp7_angirr.m ~ group, data = drsp11_data_trait2_sub)
+
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drsp7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
+```
+
+
+```{r}
+
+kruskal.test(panas_happy.m ~ group, data = drsp11_data_trait2_sub)
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = panas_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+
+kruskal.test(drspx_notenjoy.m ~ group, data = drsp11_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = drspx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "notenjoy.m.png"))
+```
+
+```{r}
+
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = ssri.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+test = kruskal.test(physicalpain.m ~ group, data = drsp11_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "physicalpain.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+ggsave(file.path(trait_path, "physicalpain.m.png"))
+```
+
+```{r}
+# kruskal.test(numdrinks_yest.m ~ group, data = drsp11_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "numdrinks_yest.m.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = drsp11_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = drsp11_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp11_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+drsp11_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp11_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$edu_clear123 <- as.factor(drsp11_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+D11_edu <- drsp11_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(D11_edu$group, D11_edu$edu_clear123)
+print(tab)
+# Run test
+res_D11_edu <- stats::fisher.test(tab)
+print(res_D11_edu)
+
+res_D11_edu = capture.output(res_D11_edu)
+
+writeLines(res_D11_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$sexorientation <- as.factor(drsp11_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+D11_sexo <- drsp11_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(D11_sexo$group, D11_sexo$sexorientation)
+print(tab)
+# Run test
+res_D11_sexo <- stats::fisher.test(tab)
+print(res_D11_sexo)
+
+res_D11_sexo = capture.output(res_D11_sexo)
+
+writeLines(res_D11_sexo, file.path(trait_path, "sexorientation.txt"))
+
+drsp11_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp11_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$houseincomecat <- as.factor(drsp11_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+D11_income <- drsp11_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(D11_income$group, D11_income$houseincomecat)
+print(tab)
+# Run test
+res_D11_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_D11_income)
+
+res_D11_income = capture.output(res_D11_income)
+
+writeLines(res_D11_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = drsp11_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
+
+
+
+
+## DRSP 14 hypersomnia 
+
+```{r}
+dat123 = preprocess_outcome(dat123, "drsp14_sleptmore")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+ D14 <- subset_by_phase_cyclic(
+  data = dat123,
+  outcome = "drsp14_sleptmore",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+D14_data_subset <-D14$data_subset
+
+
+resD14_menses <- run_smm_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resD14_ov <- run_smm_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = T,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D14_bic_result_menses <- compare_bic_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  centering = "menses",
+  smm_results = resD14_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D14_bic_result_ov <- compare_bic_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  centering = "ovulation",
+  smm_results = resD14_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+D14gams_menses = model_plot_modx_gam_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  smm_result = resD14_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+D14gams_ov = model_plot_modx_gam_cyclic(
+  data = D14_data_subset,
+  outcome = "drsp14_sleptmore",
+  smm_result = resD14_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+
+### trait comparisons 
+
+```{r}
+d14groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp14_sleptmore/ovulation_centered/drsp14_sleptmore_g3_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+D14_trait_sub = merge(trait, d14groups, by = "id")
+
+trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp14_sleptmore/trait_comparisons"
+```
+
+
+```{r}
+D14_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = D14_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_traumint ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = D14_trait_sub)
+test = capture.output(test)
+write_lines(test, paste0(trait_path, "/IDAS_gendep.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+ggsave(paste0(trait_path, "/IDAS_gendep.png"))
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+test = kruskal.test(IDASI_lass ~ group, data = D11_trait_sub)
+test = capture.output(test)
+write_lines(test, paste0(trait_path, "/lassitude.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(paste0(trait_path, "/lassitude.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+# trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
+kruskal.test(IDASI_apploss ~ group, data = D14_trait_sub)
+
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+test = kruskal.test(IDASI_appgain ~ group, data = D14_trait_sub)
+test = capture.output(test)
+write_lines(test, paste0(trait_path, "/appgain.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(paste0(trait_path, "/appgain.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = D14_trait_sub)
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+test = kruskal.test(IDASI_illtemp ~ group, data = D14_trait_sub)
+test = capture.output(test)
+write_lines(test, paste0(trait_path, "/illtemp.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(paste0(trait_path, "/illtemp.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_mania ~ group, data = D14_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+# ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+# ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = D14_trait_sub)
+
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+D14_trait_sub$caffeine = as.numeric(D14_trait_sub$caffeine)
+test = kruskal.test(caffeine ~ group, data = D14_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+kruskal.test(age ~ group, data = D14_trait_sub)
+ggbetweenstats(
+  data  = D14_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+D14_trait_sub <- D14_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+D14_trait_sub$group <- as.factor(D14_trait_sub$group)
+D14_trait_sub$race_eth_analysis <- as.factor(D14_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+D14_race_eth <- D14_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(D14_race_eth$group, D14_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_D14_race_eth <- stats::fisher.test(tab)
+print(res_D14_race_eth)
+
+res_D14_race_eth = capture.output(res_D14_race_eth)
+
+writeLines(res_D14_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = D14_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = D14_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+
+```
+
+
+```{r}
+drsp14_data_trait2_sub <- dat123 %>%
+  dplyr::select((c("id", "drsp1_depblue", "drspx_cramps", "drsp4_anxious", "drsp7b_irritable", "panas_happy","drspx_notenjoy",
+                  "ssri", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp15_troublesleep.m", "passiveSI.m", "activeSI.m", "drsp7_angirr")))
+
+drsp14_data_trait2_sub <- drsp14_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(drsp1_depblue.m =  mean(drsp1_depblue, na.rm = TRUE)) %>%
+    mutate(drspx_cramps.m =  mean(drspx_cramps, na.rm = TRUE)) %>%
+    mutate(drsp4_anxious.m = mean(drsp4_anxious, na.rm = TRUE)) %>% 
+    mutate(drsp7b_irritable.m = mean(drsp7b_irritable, na.rm = T)) %>%
+    mutate(panas_happy.m = mean(panas_happy, na.rm = T)) %>%
+    mutate(drspx_notenjoy.m = mean(drspx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(drsp7_angirr.m = mean(drsp7_angirr, na.rm = T)) %>%
+    mutate(ssri.m = ifelse(mean(ssri, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+drsp14_data_trait2_sub <- drsp14_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "drsp1_depblue.m", "drspx_cramps.m", "drsp4_anxious.m", "drsp7b_irritable.m", "panas_happy.m","drspx_notenjoy.m",
+                  "ssri.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp14_lethtired.m", "passiveSI.m", "activeSI.m", "drsp7_angirr.m")))
+d14groups$id = as.factor(d14groups$id)
+drsp14_data_trait2_sub = left_join(d14groups, drsp14_data_trait2_sub, by = "id")
+
+drsp14_data_trait2_sub = unique(drsp14_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(drsp1_depblue.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drsp1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(drspx_cramps.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drspx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+# test = kruskal.test(drsp4_anxious.m ~ group, data = drsp14_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drsp4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "drsp4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(drsp7b_irritable.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drsp7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+```{r}
+test = kruskal.test(drsp7_angirr.m ~ group, data = drsp14_data_trait2_sub)
+
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drsp7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
+```
+
+
+```{r}
+
+kruskal.test(panas_happy.m ~ group, data = drsp14_data_trait2_sub)
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = panas_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+
+kruskal.test(drspx_notenjoy.m ~ group, data = drsp14_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = drspx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "notenjoy.m.png"))
+```
+
+```{r}
+
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = ssri.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+#ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+# kruskal.test(numdrinks_yest.m ~ group, data = drsp14_data_trait2_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+# ggsave(file.path(trait_path, "numdrinks_yest.m.png"))
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = drsp14_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp14_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+drsp14_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp14_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$edu_clear123 <- as.factor(drsp14_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+D14_edu <- drsp14_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(D14_edu$group, D14_edu$edu_clear123)
+print(tab)
+# Run test
+res_D14_edu <- stats::fisher.test(tab)
+print(res_D14_edu)
+
+res_D14_edu = capture.output(res_D14_edu)
+
+writeLines(res_D14_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$sexorientation <- as.factor(drsp14_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+D14_sexo <- drsp14_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(D14_sexo$group, D14_sexo$sexorientation)
+print(tab)
+# Run test
+res_D14_sexo <- stats::fisher.test(tab)
+print(res_D14_sexo)
+
+res_D14_sexo = capture.output(res_D14_sexo)
+
+writeLines(res_D14_sexo, file.path(trait_path, "sexorientation.txt"))
+
+drsp14_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp14_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$houseincomecat <- as.factor(drsp14_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+D14_income <- drsp14_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(D14_income$group, D14_income$houseincomecat)
+print(tab)
+# Run test
+res_D14_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_D14_income)
+
+res_D14_income = capture.output(res_D14_income)
+
+writeLines(res_D14_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = drsp14_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
+
+## DRSP 15 insomnia 
+
+```{r}
+dat123 = preprocess_outcome(dat123, "drsp15_troublesleep")
+#2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
+
+ D15 <- subset_by_phase_cyclic(
+  data = dat123,
+  outcome = "drsp15_troublesleep",
+  time_var = "cyclic_time_impute",
+  min_obs = 5
+)
+
+D15_data_subset <-D15$data_subset
+
+
+resD15_menses <- run_smm_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  centering = "menses", #can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+resD15_ov <- run_smm_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  g = 2:5, #this will check for solutions for 2-5 groups
+  d_inter = 40,
+  k_smooth = 10,
+  plot = T, 
+  log_var = T,
+  centering = "ovulation", #can change this to "ovulation" 
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D15_bic_result_menses <- compare_bic_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  centering = "menses",
+  smm_results = resD15_menses, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+
+D15_bic_result_ov <- compare_bic_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  centering = "ovulation",
+  smm_results = resD15_ov, #put in the result object from step 3
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+)
+
+D15gams_menses = model_plot_modx_gam_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  smm_result = resD15_menses, #put in the result object from step 3
+  centering = "menses",#can change this to "ovulation" 
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+D15gams_ov = model_plot_modx_gam_cyclic(
+  data = D15_data_subset,
+  outcome = "drsp15_troublesleep",
+  smm_result = resD15_ov, #put in the result object from step 3
+  centering = "ovulation",#can change this to "ovulation"
+  log_var = T,
+  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+)
+
+
+```
+
+#### trait comparisons 
+
+```{r}
+d15groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/menses_centered/drsp15_troublesleep_g3_class.csv")
+
+trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
+
+
+D15_trait_sub = merge(trait, d15groups, by = "id")
+```
+
+```{r}
+D15_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+
+kruskal.test(IDASI_insom ~ group, data = D15_trait_sub)
+
+ggstatsplot::ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_insom,
+  title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+#IDASI_traumint
+kruskal.test(IDASI_traumint ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_traumint,
+  title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_GENDEP ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_GENDEP,
+  title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+```
+
+```{r}
+
+kruskal.test(IDASI_dys ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_dys,
+  title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_lass ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_lass,
+  title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_sui ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_sui,
+  title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
+test = kruskal.test(IDASI_apploss ~ group, data = D15_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_apploss,
+  title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(file.path(trait_path, "/IDASI_aploss.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_appgain ~ group, data = D15_trait_sub)
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_appgain,
+  title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_wb ~ group, data = D15_trait_sub)
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_wb,
+  title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+kruskal.test(IDASI_illtemp ~ group, data = D15_trait_sub)
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_illtemp,
+  title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+test = kruskal.test(IDASI_mania ~ group, data = D15_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_mania,
+  title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+ggsave(file.path(trait_path, "/IDASI_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_euph ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_euph,
+  title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_panic,
+  title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+
+test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
+ggsave(file.path(trait_path, "/panic_mania.png"))
+```
+
+
+```{r}
+kruskal.test(IDASI_socanx ~ group, data = D15_trait_sub)
+
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = IDASI_socanx,
+  title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+```{r}
+D15_trait_sub$caffeine = as.numeric(D15_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = capture.output(test)
+# writeLines(test, file.path(trait_path, "/caffeine.txt"))
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = caffeine,
+  title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
+)
+# ggsave(file.path(trait_path, "/caffeine.png"))
+```
+
+
+```{r}
+kruskal.test(age ~ group, data = D15_trait_sub)
+ggbetweenstats(
+  data  = D15_trait_sub,
+  x     = group,
+  y     = age,
+  title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
+)
+```
+
+
+```{r}
+
+D15_trait_sub <- D15_trait_sub %>%
+  mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
+
+# Ensure factors
+D15_trait_sub$group <- as.factor(D15_trait_sub$group)
+D15_trait_sub$race_eth_analysis <- as.factor(D15_trait_sub$race_eth_analysis)
+# Filter & drop unused levels
+D15_race_eth <- D15_trait_sub %>% 
+  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  droplevels()
+# Create table
+tab <- table(D15_race_eth$group, D15_race_eth$race_eth_analysis)
+print(tab)
+# Run test
+res_D15_race_eth <- fisher.test(tab)
+print(res_D15_race_eth)
+
+res_D15_race_eth = capture.output(res_D15_race_eth)
+
+writeLines(res_D15_race_eth, file.path(trait_path, "race_eth.txt"))
+
+         
+ggbarstats(
+  data  = D15_trait_sub,
+  x     = race_eth_analysis_label,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth_labeled.png"))
+
+ggbarstats(
+  data  = D15_trait_sub,
+  x     = race_eth_analysis,
+  y     = group,
+  title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
+ggsave(file.path(trait_path, "race_eth.png"))
+
+D15_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+```
+
+
+```{r}
+drsp15_data_trait2_sub <- dat123 %>%
+  dplyr::select((c("id", "drsp1_depblue", "drspx_cramps", "drsp4_anxious", "drsp7b_irritable", "panas_happy","drspx_notenjoy",
+                  "ssri", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp15_troublesleep.m", "passiveSI.m", "activeSI.m", "drsp7_angirr")))
+
+drsp15_data_trait2_sub <- drsp15_data_trait2_sub %>%
+    group_by(id) %>%
+    mutate(drsp1_depblue.m =  mean(drsp1_depblue, na.rm = TRUE)) %>%
+    mutate(drspx_cramps.m =  mean(drspx_cramps, na.rm = TRUE)) %>%
+    mutate(drsp4_anxious.m = mean(drsp4_anxious, na.rm = TRUE)) %>% 
+    mutate(drsp7b_irritable.m = mean(drsp7b_irritable, na.rm = T)) %>%
+    mutate(panas_happy.m = mean(panas_happy, na.rm = T)) %>%
+    mutate(drspx_notenjoy.m = mean(drspx_notenjoy, na.rm = T)) %>%
+    mutate(physicalpain.m = mean(physicalpain, na.rm = T)) %>%
+    mutate(numdrinks_yest.m = mean(numdrinks_yest, na.rm = T)) %>%
+    mutate(drsp7_angirr.m = mean(drsp7_angirr, na.rm = T)) %>%
+    mutate(ssri.m = ifelse(mean(ssri, na.rm = TRUE) > 0, 1, 0)) %>%
+    ungroup()
+    
+drsp15_data_trait2_sub <- drsp15_data_trait2_sub %>%
+ dplyr::select(any_of(c("id", "drsp1_depblue.m", "drspx_cramps.m", "drsp4_anxious.m", "drsp7b_irritable.m", "panas_happy.m","drspx_notenjoy.m",
+                  "ssri.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
+                  "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "drsp15_troublesleep.m", "passiveSI.m", "activeSI.m", "drsp7_angirr.m")))
+
+drsp15_data_trait2_sub = left_join(d15groups, drsp15_data_trait2_sub, by = "id")
+
+drsp15_data_trait2_sub = unique(drsp15_data_trait2_sub)
+```
+
+```{r}
+kruskal.test(passiveSI.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = passiveSI.m,
+  title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(activeSI.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = activeSI.m,
+  title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+
+```{r}
+
+kruskal.test(drsp1_depblue.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drsp1_depblue.m,
+  title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+kruskal.test(drspx_cramps.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drspx_cramps.m,
+  title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+test = kruskal.test(drsp4_anxious.m ~ group, data = drsp15_data_trait2_sub)
+test = capture.output(test)
+writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drsp4_anxious.m,
+  title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+ggsave(file.path(trait_path, "drsp4_anxious.m.png"))
+```
+
+```{r}
+kruskal.test(drsp7b_irritable.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drsp7b_irritable.m,
+  title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+```{r}
+kruskal.test(drsp7_angirr.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drsp7_angirr.m,
+  title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+
+kruskal.test(panas_happy.m ~ group, data = drsp15_data_trait2_sub)
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = panas_happy.m,
+  title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+```
+
+
+```{r}
+
+kruskal.test(drspx_notenjoy.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = drspx_notenjoy.m,
+  title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+```{r}
+
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = ssri.m,
+  y     = group,
+  title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
+
+ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
+```
+
+
+```{r}
+kruskal.test(physicalpain.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = physicalpain.m,
+  title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+
+
+```
+
+```{r}
+kruskal.test(numdrinks_yest.m ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = numdrinks_yest.m,
+  title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(numfullatt ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = numfullatt,
+  title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+kruskal.test(bmi ~ group, data = drsp15_data_trait2_sub)
+
+ggbetweenstats(
+  data  = drsp15_data_trait2_sub,
+  x     = group,
+  y     = bmi,
+  title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
+)
+```
+
+
+```{r}
+drsp15_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp15_data_trait2_sub$edu_clear123)
+
+# Ensure factors
+drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$edu_clear123 <- as.factor(drsp15_data_trait2_sub$edu_clear123)
+# Filter & drop unused levels
+D15_edu <- drsp15_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  droplevels()
+# Create table
+tab <- table(D15_edu$group, D15_edu$edu_clear123)
+print(tab)
+# Run test
+res_D15_edu <- fisher.test(tab)
+print(res_D15_edu)
+
+res_D15_edu = capture.output(res_D15_edu)
+
+writeLines(res_D15_edu, file.path(trait_path, "edu.txt"))
+
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = edu_clear123_labeled,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+ggsave(file.path(trait_path, "edu_labelled.png"))
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = edu_clear123,
+  y     = group,
+  title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
+```
+
+```{r}
+
+# Ensure factors
+drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$sexorientation <- as.factor(drsp15_data_trait2_sub$sexorientation)
+# Filter & drop unused levels
+D15_sexo <- drsp15_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(sexorientation)) %>%
+  droplevels()
+# Create table
+tab <- table(D15_sexo$group, D15_sexo$sexorientation)
+print(tab)
+# Run test
+res_D15_sexo <- fisher.test(tab)
+print(res_D15_sexo)
+
+res_D15_sexo = capture.output(res_D15_sexo)
+
+writeLines(res_D15_sexo, file.path(trait_path, "sexorientation.txt"))
+
+drsp15_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp15_data_trait2_sub$sexorientation)
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = sexorientation_labeled,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+ggsave(file.path(trait_path, "sex_orient.png"))
+
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = sexorientation,
+  y     = group,
+  title = "Distribution of Sexual Orientation across latent groups")
+```
+
+
+```{r}
+
+# Ensure factors
+drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$houseincomecat <- as.factor(drsp15_data_trait2_sub$houseincomecat)
+# Filter & drop unused levels
+D15_income <- drsp15_data_trait2_sub %>% 
+  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  droplevels()
+# Create table
+tab <- table(D15_income$group, D15_income$houseincomecat)
+print(tab)
+# Run test
+res_D15_income <- fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_D15_income)
+
+res_D15_income = capture.output(res_D15_income)
+
+writeLines(res_D15_income, file.path(trait_path, "houseincomecat.txt"))
+
+
+ggbarstats(
+  data  = drsp15_data_trait2_sub,
+  x     = houseincomecat,
+  y     = group,
+  palette = "Set3",
+  title = "Distribution of house income category across latent groups")
+ggsave(file.path(trait_path, "houseincomecat.png"))
+
+
+```
+
+
