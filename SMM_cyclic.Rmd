@@ -119,7 +119,6 @@ steps_bic_result_ov <- compare_bic_cyclic(
 ### Step 4: Model Subgroup Membership as a Moderator
 
 ```{r}
-steps_data_subset <- steps_data_subset %>% select(-group)
 stepsgams_menses = model_plot_modx_gam_cyclic(
   data = steps_data_subset,
   outcome = "Oura_Activity_steps",
@@ -157,13 +156,13 @@ trait_path = "output/20250902/Oura_Activity_steps/trait_comparisons"
 ```
 
 ```{r}
-steps_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+steps_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = steps_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -173,11 +172,11 @@ ggstatsplot::ggbetweenstats(
 ```{r}
 
 #IDASI_traumint
-kruskal.test(IDASI_traumint ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -185,11 +184,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -198,22 +197,22 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_lass ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_lass ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -221,11 +220,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -234,12 +233,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_apploss ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -248,10 +247,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_appgain ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_appgain ~ class, data = steps_trait_sub)
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -259,20 +258,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = steps_trait_sub)
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = steps_trait_sub)
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -280,12 +279,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_mania ~ group, data = steps_trait_sub)
+# test = kruskal.test(IDASI_mania ~ class, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -294,11 +293,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -306,16 +305,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = steps_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -323,11 +322,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = steps_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = steps_trait_sub)
 
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -335,12 +334,12 @@ ggbetweenstats(
 
 ```{r}
 steps_trait_sub$caffeine = as.numeric(steps_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = steps_trait_sub)
+# test = kruskal.test(caffeine ~ class, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -349,10 +348,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(age ~ group, data = steps_trait_sub)
+kruskal.test(age ~ class, data = steps_trait_sub)
 ggbetweenstats(
   data  = steps_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -364,14 +363,14 @@ steps_trait_sub <- steps_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-steps_trait_sub$group <- as.factor(steps_trait_sub$group)
+steps_trait_sub$class <- as.factor(steps_trait_sub$class)
 steps_trait_sub$race_eth_analysis <- as.factor(steps_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 steps_race_eth <- steps_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(steps_race_eth$group, steps_race_eth$race_eth_analysis)
+tab <- table(steps_race_eth$class, steps_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_steps_race_eth <- stats::fisher.test(tab)
@@ -385,18 +384,18 @@ writeLines(res_steps_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = steps_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = steps_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
-steps_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+steps_trait_sub %>% dplyr::select(id, class, race_eth_analysis)
 ```
 
 
@@ -433,11 +432,11 @@ steps_data_trait2_sub = unique(steps_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -446,11 +445,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -461,11 +460,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSP1_depblue.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(DRSP1_depblue.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -474,11 +473,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(DRSPx_cramps.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(DRSPx_cramps.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -487,12 +486,12 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(DRSP4_anxious.m ~ group, data = steps_data_trait2_sub)
+# test = kruskal.test(DRSP4_anxious.m ~ class, data = steps_data_trait2_sub)
 # test = capture.output(test)
 #writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -500,11 +499,11 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(DRSP7b_irritable.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(DRSP7b_irritable.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -512,11 +511,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(DRSP7_angirr.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(DRSP7_angirr.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -525,12 +524,12 @@ ggbetweenstats(
 
 ```{r}
 
-test = kruskal.test(PANAS_happy.m ~ group, data = steps_data_trait2_sub)
+test = kruskal.test(PANAS_happy.m ~ class, data = steps_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "panas_happy.m.txt"))
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = PANAS_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -540,11 +539,11 @@ ggsave(file.path(trait_path, "panas_happy.m.png"))
 
 ```{r}
 
-kruskal.test(DRSPx_notenjoy.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(DRSPx_notenjoy.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -555,7 +554,7 @@ ggbetweenstats(
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = SSRI.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -563,11 +562,11 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = steps_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -576,12 +575,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-test = kruskal.test(numdrinks_yest.m ~ group, data = steps_data_trait2_sub)
+test = kruskal.test(numdrinks_yest.m ~ class, data = steps_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -591,11 +590,11 @@ ggsave(file.path(trait_path, "mean_drinks.png"))
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = steps_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -603,11 +602,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = steps_data_trait2_sub)
+kruskal.test(bmi ~ class, data = steps_data_trait2_sub)
 
 ggbetweenstats(
   data  = steps_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -618,14 +617,14 @@ ggbetweenstats(
 steps_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(steps_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$class <- as.factor(steps_data_trait2_sub$class)
 steps_data_trait2_sub$edu_clear123 <- as.factor(steps_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 steps_edu <- steps_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(steps_edu$group, steps_edu$edu_clear123)
+tab <- table(steps_edu$class, steps_edu$edu_clear123)
 print(tab)
 # Run test
 res_steps_edu <- stats::fisher.test(tab)
@@ -638,27 +637,27 @@ writeLines(res_steps_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$class <- as.factor(steps_data_trait2_sub$class)
 steps_data_trait2_sub$sexorientation <- as.factor(steps_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 steps_sexo <- steps_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(steps_sexo$group, steps_sexo$sexorientation)
+tab <- table(steps_sexo$class, steps_sexo$sexorientation)
 print(tab)
 # Run test
 res_steps_sexo <- stats::fisher.test(tab)
@@ -672,14 +671,14 @@ steps_data_trait2_sub$sexorientation_labeled <- haven::as_factor(steps_data_trai
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -687,14 +686,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$class <- as.factor(steps_data_trait2_sub$class)
 steps_data_trait2_sub$houseincomecat <- as.factor(steps_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 steps_income <- steps_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(steps_income$group, steps_income$houseincomecat)
+tab <- table(steps_income$class, steps_income$houseincomecat)
 print(tab)
 # Run test
 res_steps_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -708,7 +707,7 @@ writeLines(res_steps_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = steps_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -820,13 +819,13 @@ trait_path = "output/20250903/rempercTST_SRI_lag/trait_comparisons"
 ```
 
 ```{r}
-REM_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+REM_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = REM_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -836,11 +835,11 @@ ggstatsplot::ggbetweenstats(
 ```{r}
 
 #IDASI_traumint
-kruskal.test(IDASI_traumint ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -848,11 +847,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -861,22 +860,22 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_lass ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_lass ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -884,11 +883,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -897,12 +896,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_apploss ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -911,10 +910,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_appgain ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_appgain ~ class, data = REM_trait_sub)
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -922,20 +921,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = REM_trait_sub)
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = REM_trait_sub)
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -943,12 +942,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_mania ~ group, data = REM_trait_sub)
+# test = kruskal.test(IDASI_mania ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -957,11 +956,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -969,16 +968,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = REM_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -986,11 +985,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = REM_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = REM_trait_sub)
 
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -998,12 +997,12 @@ ggbetweenstats(
 
 ```{r}
 REM_trait_sub$caffeine = as.numeric(REM_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = REM_trait_sub)
+# test = kruskal.test(caffeine ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -1012,12 +1011,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(age ~ group, data = REM_trait_sub)
+# test = kruskal.test(age ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/age.txt"))
 ggbetweenstats(
   data  = REM_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1030,14 +1029,14 @@ REM_trait_sub <- REM_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-REM_trait_sub$group <- as.factor(REM_trait_sub$group)
+REM_trait_sub$class <- as.factor(REM_trait_sub$class)
 REM_trait_sub$race_eth_analysis <- as.factor(REM_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 REM_race_eth <- REM_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(REM_race_eth$group, REM_race_eth$race_eth_analysis)
+tab <- table(REM_race_eth$class, REM_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_REM_race_eth <- stats::fisher.test(tab)
@@ -1051,18 +1050,18 @@ writeLines(res_REM_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = REM_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = REM_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
-REM_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+REM_trait_sub %>% dplyr::select(id, class, race_eth_analysis)
 ```
 
 
@@ -1099,11 +1098,11 @@ REM_data_trait2_sub = unique(REM_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1112,11 +1111,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1127,18 +1126,18 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSP1_depblue.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(DRSP1_depblue.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
 
 ```
 
-# test = kruskal.test(age ~ group, data = REM_trait_sub)
+# test = kruskal.test(age ~ class, data = REM_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/age.txt"))
 
@@ -1146,12 +1145,12 @@ ggbetweenstats(
 
 
 ```{r}
-test = kruskal.test(DRSPx_cramps.m ~ group, data = REM_data_trait2_sub)
+test = kruskal.test(DRSPx_cramps.m ~ class, data = REM_data_trait2_sub)
 test = capture.output(test)
  writeLines(test, file.path(trait_path, "/cramps.txt"))
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1161,12 +1160,12 @@ ggsave(file.path(trait_path, "/cramps.png"))
 
 ```{r}
 
-# test = kruskal.test(DRSP4_anxious.m ~ group, data = REM_data_trait2_sub)
+# test = kruskal.test(DRSP4_anxious.m ~ class, data = REM_data_trait2_sub)
 # test = capture.output(test)
 #writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1174,21 +1173,21 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(DRSP7b_irritable.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(DRSP7b_irritable.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
 ```
 ```{r}
-kruskal.test(DRSP7_angirr.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(DRSP7_angirr.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1197,10 +1196,10 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(PANAS_happy.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(PANAS_happy.m ~ class, data = REM_data_trait2_sub)
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = PANAS_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1210,11 +1209,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSPx_notenjoy.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(DRSPx_notenjoy.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1225,7 +1224,7 @@ ggbetweenstats(
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = SSRI.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -1233,11 +1232,11 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = REM_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1246,12 +1245,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-# test = kruskal.test(numdrinks_yest.m ~ group, data = REM_data_trait2_sub)
+# test = kruskal.test(numdrinks_yest.m ~ class, data = REM_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1261,11 +1260,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = REM_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1273,11 +1272,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = REM_data_trait2_sub)
+kruskal.test(bmi ~ class, data = REM_data_trait2_sub)
 
 ggbetweenstats(
   data  = REM_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1288,14 +1287,14 @@ ggbetweenstats(
 REM_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(REM_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$class <- as.factor(REM_data_trait2_sub$class)
 REM_data_trait2_sub$edu_clear123 <- as.factor(REM_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 REM_edu <- REM_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(REM_edu$group, REM_edu$edu_clear123)
+tab <- table(REM_edu$class, REM_edu$edu_clear123)
 print(tab)
 # Run test
 res_REM_edu <- stats::fisher.test(tab)
@@ -1308,27 +1307,27 @@ writeLines(res_REM_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$class <- as.factor(REM_data_trait2_sub$class)
 REM_data_trait2_sub$sexorientation <- as.factor(REM_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 REM_sexo <- REM_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(REM_sexo$group, REM_sexo$sexorientation)
+tab <- table(REM_sexo$class, REM_sexo$sexorientation)
 print(tab)
 # Run test
 res_REM_sexo <- stats::fisher.test(tab)
@@ -1342,14 +1341,14 @@ REM_data_trait2_sub$sexorientation_labeled <- haven::as_factor(REM_data_trait2_s
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -1357,14 +1356,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-REM_data_trait2_sub$group <- as.factor(REM_data_trait2_sub$group)
+REM_data_trait2_sub$class <- as.factor(REM_data_trait2_sub$class)
 REM_data_trait2_sub$houseincomecat <- as.factor(REM_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 REM_income <- REM_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(REM_income$group, REM_income$houseincomecat)
+tab <- table(REM_income$class, REM_income$houseincomecat)
 print(tab)
 # Run test
 res_REM_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -1378,7 +1377,7 @@ writeLines(res_REM_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = REM_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -1387,9 +1386,9 @@ ggsave(file.path(trait_path, "houseincomecat.png"))
 ```
 
 ```{r}
-REM_data_trait2_sub %>% filter(group == 1) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
+REM_data_trait2_sub %>% filter(class == 1) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
 
-REM_data_trait2_sub %>% filter(group == 2) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
+REM_data_trait2_sub %>% filter(class == 2) %>% summarise(mean = mean(DRSPx_cramps.m), sd = sd(DRSPx_cramps.m))
 ```
 
 
@@ -1491,13 +1490,13 @@ trait_path = "output/20250903/Oura_Sleep_Efficiencyperc_lag/trait_comparisons"
 ```
 
 ```{r}
-SE_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+SE_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = SE_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1507,11 +1506,11 @@ ggstatsplot::ggbetweenstats(
 ```{r}
 
 #IDASI_traumint
-kruskal.test(IDASI_traumint ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1519,11 +1518,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1532,22 +1531,22 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_lass ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_lass ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1555,11 +1554,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1568,12 +1567,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_apploss ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = SE_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1582,10 +1581,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_appgain ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_appgain ~ class, data = SE_trait_sub)
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1593,20 +1592,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = SE_trait_sub)
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = SE_trait_sub)
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1614,12 +1613,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_mania ~ group, data = SE_trait_sub)
+# test = kruskal.test(IDASI_mania ~ class, data = SE_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1628,11 +1627,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1640,16 +1639,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = SE_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = SE_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -1657,11 +1656,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = SE_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = SE_trait_sub)
 
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1669,12 +1668,12 @@ ggbetweenstats(
 
 ```{r}
 SE_trait_sub$caffeine = as.numeric(SE_trait_sub$caffeine)
-test = kruskal.test(caffeine ~ group, data = SE_trait_sub)
+test = kruskal.test(caffeine ~ class, data = SE_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -1683,12 +1682,12 @@ ggsave(file.path(trait_path, "/caffeine.png"))
 
 
 ```{r}
-test = kruskal.test(age ~ group, data = SE_trait_sub)
+test = kruskal.test(age ~ class, data = SE_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/age.txt"))
 ggbetweenstats(
   data  = SE_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -1701,14 +1700,14 @@ SE_trait_sub <- SE_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-SE_trait_sub$group <- as.factor(SE_trait_sub$group)
+SE_trait_sub$class <- as.factor(SE_trait_sub$class)
 SE_trait_sub$race_eth_analysis <- as.factor(SE_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 SE_race_eth <- SE_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(SE_race_eth$group, SE_race_eth$race_eth_analysis)
+tab <- table(SE_race_eth$class, SE_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_SE_race_eth <- stats::fisher.test(tab)
@@ -1722,18 +1721,18 @@ writeLines(res_SE_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = SE_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = SE_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
-SE_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+SE_trait_sub %>% dplyr::select(id, class, race_eth_analysis)
 ```
 
 
@@ -1770,11 +1769,11 @@ SE_data_trait2_sub = unique(SE_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1783,11 +1782,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1798,11 +1797,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSP1_depblue.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(DRSP1_depblue.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1811,11 +1810,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(DRSPx_cramps.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(DRSPx_cramps.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1824,12 +1823,12 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(DRSP4_anxious.m ~ group, data = SE_data_trait2_sub)
+# test = kruskal.test(DRSP4_anxious.m ~ class, data = SE_data_trait2_sub)
 # test = capture.output(test)
 writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1837,21 +1836,21 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(DRSP7b_irritable.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(DRSP7b_irritable.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
 ```
 ```{r}
-kruskal.test(DRSP7_angirr.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(DRSP7_angirr.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSP7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1860,10 +1859,10 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(PANAS_happy.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(PANAS_happy.m ~ class, data = SE_data_trait2_sub)
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = PANAS_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1873,11 +1872,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSPx_notenjoy.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(DRSPx_notenjoy.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = DRSPx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1888,7 +1887,7 @@ ggbetweenstats(
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = SSRI.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -1896,11 +1895,11 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = SE_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1909,12 +1908,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-# test = kruskal.test(numdrinks_yest.m ~ group, data = SE_data_trait2_sub)
+# test = kruskal.test(numdrinks_yest.m ~ class, data = SE_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1924,11 +1923,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = SE_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1936,11 +1935,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = SE_data_trait2_sub)
+kruskal.test(bmi ~ class, data = SE_data_trait2_sub)
 
 ggbetweenstats(
   data  = SE_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -1951,14 +1950,14 @@ ggbetweenstats(
 SE_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(SE_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$class <- as.factor(SE_data_trait2_sub$class)
 SE_data_trait2_sub$edu_clear123 <- as.factor(SE_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 SE_edu <- SE_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(SE_edu$group, SE_edu$edu_clear123)
+tab <- table(SE_edu$class, SE_edu$edu_clear123)
 print(tab)
 # Run test
 res_SE_edu <- stats::fisher.test(tab)
@@ -1971,27 +1970,27 @@ writeLines(res_SE_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$class <- as.factor(SE_data_trait2_sub$class)
 SE_data_trait2_sub$sexorientation <- as.factor(SE_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 SE_sexo <- SE_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(SE_sexo$group, SE_sexo$sexorientation)
+tab <- table(SE_sexo$class, SE_sexo$sexorientation)
 print(tab)
 # Run test
 res_SE_sexo <- stats::fisher.test(tab)
@@ -2005,14 +2004,14 @@ SE_data_trait2_sub$sexorientation_labeled <- haven::as_factor(SE_data_trait2_sub
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -2020,14 +2019,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-SE_data_trait2_sub$group <- as.factor(SE_data_trait2_sub$group)
+SE_data_trait2_sub$class <- as.factor(SE_data_trait2_sub$class)
 SE_data_trait2_sub$houseincomecat <- as.factor(SE_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 SE_income <- SE_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(SE_income$group, SE_income$houseincomecat)
+tab <- table(SE_income$class, SE_income$houseincomecat)
 print(tab)
 # Run test
 res_SE_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -2041,7 +2040,7 @@ writeLines(res_SE_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = SE_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -2230,13 +2229,13 @@ trait_path = "output/20250902/sleeplnquality/trait_comparisons"
 ```
 
 ```{r}
-SQ_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+SQ_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = SQ_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2244,11 +2243,11 @@ ggstatsplot::ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_traumint ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2256,11 +2255,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2270,23 +2269,23 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-test = kruskal.test(IDASI_lass ~ group, data = SQ_trait_sub)
+test = kruskal.test(IDASI_lass ~ class, data = SQ_trait_sub)
 test = capture.output(test)
 write_lines(test, paste0(trait_path, "/lassitude.txt"))
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2295,11 +2294,11 @@ ggsave(paste0(trait_path, "/lassitude.png"))
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2308,12 +2307,12 @@ ggbetweenstats(
 
 ```{r}
 # trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
-kruskal.test(IDASI_apploss ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = SQ_trait_sub)
 
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2322,12 +2321,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_appgain ~ group, data = SQ_trait_sub)
+# test = kruskal.test(IDASI_appgain ~ class, data = SQ_trait_sub)
 # test = capture.output(test)
 # write_lines(test, paste0(trait_path, "/appgain.txt"))
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2336,20 +2335,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = SQ_trait_sub)
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = SQ_trait_sub)
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2357,12 +2356,12 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_mania ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_mania ~ class, data = SQ_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2371,11 +2370,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2383,16 +2382,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -2400,11 +2399,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = SQ_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = SQ_trait_sub)
 
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2412,12 +2411,12 @@ ggbetweenstats(
 
 ```{r}
 SQ_trait_sub$caffeine = as.numeric(SQ_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = kruskal.test(caffeine ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -2426,10 +2425,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(age ~ group, data = SQ_trait_sub)
+kruskal.test(age ~ class, data = SQ_trait_sub)
 ggbetweenstats(
   data  = SQ_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2442,14 +2441,14 @@ SQ_trait_sub <- SQ_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-SQ_trait_sub$group <- as.factor(SQ_trait_sub$group)
+SQ_trait_sub$class <- as.factor(SQ_trait_sub$class)
 SQ_trait_sub$race_eth_analysis <- as.factor(SQ_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 SQ_race_eth <- SQ_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(SQ_race_eth$group, SQ_race_eth$race_eth_analysis)
+tab <- table(SQ_race_eth$class, SQ_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_SQ_race_eth <- stats::fisher.test(tab, simulate.p.value=TRUE)
@@ -2463,14 +2462,14 @@ writeLines(res_SQ_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = SQ_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = SQ_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
@@ -2509,11 +2508,11 @@ SQ_data_trait2_sub = unique(SQ_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2522,11 +2521,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2537,11 +2536,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drsp1_depblue.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(drsp1_depblue.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2550,11 +2549,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(drspx_cramps.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(drspx_cramps.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2563,12 +2562,12 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(drsp4_anxious.m ~ group, data = SQ_data_trait2_sub)
+# test = kruskal.test(drsp4_anxious.m ~ class, data = SQ_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2576,11 +2575,11 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(drsp7b_irritable.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(drsp7b_irritable.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2588,14 +2587,14 @@ ggbetweenstats(
 ```
 
 ```{r}
-test = kruskal.test(drsp7_angirr.m ~ group, data = SQ_data_trait2_sub)
+test = kruskal.test(drsp7_angirr.m ~ class, data = SQ_data_trait2_sub)
 
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2605,12 +2604,12 @@ ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
 
 ```{r}
 
-test = kruskal.test(panas_happy.m ~ group, data = SQ_data_trait2_sub)
+test = kruskal.test(panas_happy.m ~ class, data = SQ_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "panashappy.m.txt"))
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = panas_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2620,13 +2619,13 @@ ggsave(file.path(trait_path, "panashappy.m.png"))
 
 ```{r}
 
-test = kruskal.test(drspx_notenjoy.m ~ group, data = SQ_data_trait2_sub)
+test = kruskal.test(drspx_notenjoy.m ~ class, data = SQ_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2638,7 +2637,7 @@ ggsave(file.path(trait_path, "notenjoy.m.png"))
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = ssri.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -2646,11 +2645,11 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2659,12 +2658,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(numdrinks_yest.m ~ group, data = SQ_data_trait2_sub)
+kruskal.test(numdrinks_yest.m ~ class, data = SQ_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2673,11 +2672,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = SQ_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2685,11 +2684,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = SQ_data_trait2_sub)
+kruskal.test(bmi ~ class, data = SQ_data_trait2_sub)
 
 ggbetweenstats(
   data  = SQ_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -2700,14 +2699,14 @@ ggbetweenstats(
 SQ_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(SQ_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$class <- as.factor(SQ_data_trait2_sub$class)
 SQ_data_trait2_sub$edu_clear123 <- as.factor(SQ_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 SQ_edu <- SQ_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(SQ_edu$group, SQ_edu$edu_clear123)
+tab <- table(SQ_edu$class, SQ_edu$edu_clear123)
 print(tab)
 # Run test
 res_SQ_edu <- stats::fisher.test(tab)
@@ -2720,27 +2719,27 @@ writeLines(res_SQ_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$class <- as.factor(SQ_data_trait2_sub$class)
 SQ_data_trait2_sub$sexorientation <- as.factor(SQ_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 SQ_sexo <- SQ_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(SQ_sexo$group, SQ_sexo$sexorientation)
+tab <- table(SQ_sexo$class, SQ_sexo$sexorientation)
 print(tab)
 # Run test
 res_SQ_sexo <- stats::fisher.test(tab)
@@ -2754,14 +2753,14 @@ SQ_data_trait2_sub$sexorientation_labeled <- haven::as_factor(SQ_data_trait2_sub
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -2769,14 +2768,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-SQ_data_trait2_sub$group <- as.factor(SQ_data_trait2_sub$group)
+SQ_data_trait2_sub$class <- as.factor(SQ_data_trait2_sub$class)
 SQ_data_trait2_sub$houseincomecat <- as.factor(SQ_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 SQ_income <- SQ_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(SQ_income$group, SQ_income$houseincomecat)
+tab <- table(SQ_income$class, SQ_income$houseincomecat)
 print(tab)
 # Run test
 res_SQ_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -2790,7 +2789,7 @@ writeLines(res_SQ_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = SQ_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -2898,13 +2897,13 @@ trait_path = "output/20250902/drsp11_lethtired/trait_comparisons"
 
 
 ```{r}
-D11_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+D11_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = D11_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2912,11 +2911,11 @@ ggstatsplot::ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_traumint ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2924,11 +2923,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2938,23 +2937,23 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-# test = kruskal.test(IDASI_lass ~ group, data = D11_trait_sub)
+# test = kruskal.test(IDASI_lass ~ class, data = D11_trait_sub)
 # test = capture.output(test)
 # write_lines(test, paste0(trait_path, "/lassitude.txt"))
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2963,11 +2962,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2976,12 +2975,12 @@ ggbetweenstats(
 
 ```{r}
 # trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
-kruskal.test(IDASI_apploss ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = D11_trait_sub)
 
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -2990,12 +2989,12 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_appgain ~ group, data = D11_trait_sub)
+# test = kruskal.test(IDASI_appgain ~ class, data = D11_trait_sub)
 # test = capture.output(test)
 # write_lines(test, paste0(trait_path, "/appgain.txt"))
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3004,20 +3003,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = D11_trait_sub)
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = D11_trait_sub)
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3025,12 +3024,12 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_mania ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_mania ~ class, data = D11_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3039,11 +3038,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3051,16 +3050,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -3068,11 +3067,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = D11_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = D11_trait_sub)
 
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3080,12 +3079,12 @@ ggbetweenstats(
 
 ```{r}
 D11_trait_sub$caffeine = as.numeric(D11_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = kruskal.test(caffeine ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -3094,10 +3093,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(age ~ group, data = D11_trait_sub)
+kruskal.test(age ~ class, data = D11_trait_sub)
 ggbetweenstats(
   data  = D11_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3110,14 +3109,14 @@ D11_trait_sub <- D11_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-D11_trait_sub$group <- as.factor(D11_trait_sub$group)
+D11_trait_sub$class <- as.factor(D11_trait_sub$class)
 D11_trait_sub$race_eth_analysis <- as.factor(D11_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 D11_race_eth <- D11_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(D11_race_eth$group, D11_race_eth$race_eth_analysis)
+tab <- table(D11_race_eth$class, D11_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_D11_race_eth <- stats::fisher.test(tab)
@@ -3131,14 +3130,14 @@ writeLines(res_D11_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = D11_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = D11_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
@@ -3176,12 +3175,12 @@ drsp11_data_trait2_sub = unique(drsp11_data_trait2_sub)
 ```
 
 ```{r}
-test = kruskal.test(passiveSI.m ~ group, data = drsp11_data_trait2_sub)
+test = kruskal.test(passiveSI.m ~ class, data = drsp11_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/passiveSI.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3190,11 +3189,11 @@ ggsave(file.path(trait_path, "/passiveSI.m.png"))
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = drsp11_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3205,12 +3204,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drsp1_depblue.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(drsp1_depblue.m ~ class, data = drsp11_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/DRSP1.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3221,11 +3220,11 @@ ggsave(file.path(trait_path, "/DRSP1.m.png"))
 
 
 ```{r}
-kruskal.test(drspx_cramps.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(drspx_cramps.m ~ class, data = drsp11_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3234,12 +3233,12 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(drsp4_anxious.m ~ group, data = drsp11_data_trait2_sub)
+# test = kruskal.test(drsp4_anxious.m ~ class, data = drsp11_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3247,25 +3246,25 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(drsp7b_irritable.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(drsp7b_irritable.m ~ class, data = drsp11_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
 
 ```
 ```{r}
-test = kruskal.test(drsp7_angirr.m ~ group, data = drsp11_data_trait2_sub)
+test = kruskal.test(drsp7_angirr.m ~ class, data = drsp11_data_trait2_sub)
 
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3275,10 +3274,10 @@ ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
 
 ```{r}
 
-kruskal.test(panas_happy.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(panas_happy.m ~ class, data = drsp11_data_trait2_sub)
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = panas_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3288,12 +3287,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drspx_notenjoy.m ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(drspx_notenjoy.m ~ class, data = drsp11_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3305,7 +3304,7 @@ ggsave(file.path(trait_path, "notenjoy.m.png"))
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = ssri.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -3313,12 +3312,12 @@ ggbarstats(
 
 
 ```{r}
-test = kruskal.test(physicalpain.m ~ group, data = drsp11_data_trait2_sub)
+test = kruskal.test(physicalpain.m ~ class, data = drsp11_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "physicalpain.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3327,12 +3326,12 @@ ggsave(file.path(trait_path, "physicalpain.m.png"))
 ```
 
 ```{r}
-# kruskal.test(numdrinks_yest.m ~ group, data = drsp11_data_trait2_sub)
+# kruskal.test(numdrinks_yest.m ~ class, data = drsp11_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3341,11 +3340,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = drsp11_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3353,11 +3352,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = drsp11_data_trait2_sub)
+kruskal.test(bmi ~ class, data = drsp11_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp11_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3368,14 +3367,14 @@ ggbetweenstats(
 drsp11_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp11_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$class <- as.factor(drsp11_data_trait2_sub$class)
 drsp11_data_trait2_sub$edu_clear123 <- as.factor(drsp11_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 D11_edu <- drsp11_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(D11_edu$group, D11_edu$edu_clear123)
+tab <- table(D11_edu$class, D11_edu$edu_clear123)
 print(tab)
 # Run test
 res_D11_edu <- stats::fisher.test(tab)
@@ -3388,27 +3387,27 @@ writeLines(res_D11_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$class <- as.factor(drsp11_data_trait2_sub$class)
 drsp11_data_trait2_sub$sexorientation <- as.factor(drsp11_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 D11_sexo <- drsp11_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(D11_sexo$group, D11_sexo$sexorientation)
+tab <- table(D11_sexo$class, D11_sexo$sexorientation)
 print(tab)
 # Run test
 res_D11_sexo <- stats::fisher.test(tab)
@@ -3422,14 +3421,14 @@ drsp11_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp11_data_tr
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -3437,14 +3436,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-drsp11_data_trait2_sub$group <- as.factor(drsp11_data_trait2_sub$group)
+drsp11_data_trait2_sub$class <- as.factor(drsp11_data_trait2_sub$class)
 drsp11_data_trait2_sub$houseincomecat <- as.factor(drsp11_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 D11_income <- drsp11_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(D11_income$group, D11_income$houseincomecat)
+tab <- table(D11_income$class, D11_income$houseincomecat)
 print(tab)
 # Run test
 res_D11_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -3458,7 +3457,7 @@ writeLines(res_D11_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = drsp11_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -3567,13 +3566,13 @@ trait_path = "output/20250902/drsp14_sleptmore/trait_comparisons"
 
 
 ```{r}
-D14_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+D14_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = D14_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3581,11 +3580,11 @@ ggstatsplot::ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_traumint ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3593,12 +3592,12 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = D14_trait_sub)
 test = capture.output(test)
 write_lines(test, paste0(trait_path, "/IDAS_gendep.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3608,23 +3607,23 @@ ggsave(paste0(trait_path, "/IDAS_gendep.png"))
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-test = kruskal.test(IDASI_lass ~ group, data = D11_trait_sub)
+test = kruskal.test(IDASI_lass ~ class, data = D11_trait_sub)
 test = capture.output(test)
 write_lines(test, paste0(trait_path, "/lassitude.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3633,11 +3632,11 @@ ggsave(paste0(trait_path, "/lassitude.png"))
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3646,12 +3645,12 @@ ggbetweenstats(
 
 ```{r}
 # trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
-kruskal.test(IDASI_apploss ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_apploss ~ class, data = D14_trait_sub)
 
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3660,12 +3659,12 @@ ggbetweenstats(
 
 
 ```{r}
-test = kruskal.test(IDASI_appgain ~ group, data = D14_trait_sub)
+test = kruskal.test(IDASI_appgain ~ class, data = D14_trait_sub)
 test = capture.output(test)
 write_lines(test, paste0(trait_path, "/appgain.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3674,22 +3673,22 @@ ggsave(paste0(trait_path, "/appgain.png"))
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = D14_trait_sub)
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-test = kruskal.test(IDASI_illtemp ~ group, data = D14_trait_sub)
+test = kruskal.test(IDASI_illtemp ~ class, data = D14_trait_sub)
 test = capture.output(test)
 write_lines(test, paste0(trait_path, "/illtemp.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3698,12 +3697,12 @@ ggsave(paste0(trait_path, "/illtemp.png"))
 
 
 ```{r}
-kruskal.test(IDASI_mania ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_mania ~ class, data = D14_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3712,11 +3711,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3724,16 +3723,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+# test = kruskal.test(IDASI_panic ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -3741,11 +3740,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = D14_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = D14_trait_sub)
 
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3753,12 +3752,12 @@ ggbetweenstats(
 
 ```{r}
 D14_trait_sub$caffeine = as.numeric(D14_trait_sub$caffeine)
-test = kruskal.test(caffeine ~ group, data = D14_trait_sub)
+test = kruskal.test(caffeine ~ class, data = D14_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -3767,10 +3766,10 @@ ggsave(file.path(trait_path, "/caffeine.png"))
 
 
 ```{r}
-kruskal.test(age ~ group, data = D14_trait_sub)
+kruskal.test(age ~ class, data = D14_trait_sub)
 ggbetweenstats(
   data  = D14_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -3783,14 +3782,14 @@ D14_trait_sub <- D14_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-D14_trait_sub$group <- as.factor(D14_trait_sub$group)
+D14_trait_sub$class <- as.factor(D14_trait_sub$class)
 D14_trait_sub$race_eth_analysis <- as.factor(D14_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 D14_race_eth <- D14_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(D14_race_eth$group, D14_race_eth$race_eth_analysis)
+tab <- table(D14_race_eth$class, D14_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_D14_race_eth <- stats::fisher.test(tab)
@@ -3804,14 +3803,14 @@ writeLines(res_D14_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = D14_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = D14_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
@@ -3850,11 +3849,11 @@ drsp14_data_trait2_sub = unique(drsp14_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3863,11 +3862,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3878,11 +3877,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drsp1_depblue.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(drsp1_depblue.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3891,11 +3890,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(drspx_cramps.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(drspx_cramps.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3904,12 +3903,12 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(drsp4_anxious.m ~ group, data = drsp14_data_trait2_sub)
+# test = kruskal.test(drsp4_anxious.m ~ class, data = drsp14_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3917,11 +3916,11 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(drsp7b_irritable.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(drsp7b_irritable.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3929,14 +3928,14 @@ ggbetweenstats(
 ```
 
 ```{r}
-test = kruskal.test(drsp7_angirr.m ~ group, data = drsp14_data_trait2_sub)
+test = kruskal.test(drsp7_angirr.m ~ class, data = drsp14_data_trait2_sub)
 
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "drsp7_angerirr.m.txt"))
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3946,10 +3945,10 @@ ggsave(file.path(trait_path, "drsp7_angerirr.m.png"))
 
 ```{r}
 
-kruskal.test(panas_happy.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(panas_happy.m ~ class, data = drsp14_data_trait2_sub)
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = panas_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3959,12 +3958,12 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drspx_notenjoy.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(drspx_notenjoy.m ~ class, data = drsp14_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "notenjoy.m.txt"))
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3976,7 +3975,7 @@ ggsave(file.path(trait_path, "notenjoy.m.png"))
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = ssri.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 #ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -3984,11 +3983,11 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -3997,12 +3996,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-# kruskal.test(numdrinks_yest.m ~ group, data = drsp14_data_trait2_sub)
+# kruskal.test(numdrinks_yest.m ~ class, data = drsp14_data_trait2_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "numdrinks_yest.m.txt"))
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4011,11 +4010,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4023,11 +4022,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = drsp14_data_trait2_sub)
+kruskal.test(bmi ~ class, data = drsp14_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp14_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4038,14 +4037,14 @@ ggbetweenstats(
 drsp14_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp14_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$class <- as.factor(drsp14_data_trait2_sub$class)
 drsp14_data_trait2_sub$edu_clear123 <- as.factor(drsp14_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 D14_edu <- drsp14_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(D14_edu$group, D14_edu$edu_clear123)
+tab <- table(D14_edu$class, D14_edu$edu_clear123)
 print(tab)
 # Run test
 res_D14_edu <- stats::fisher.test(tab)
@@ -4058,27 +4057,27 @@ writeLines(res_D14_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$class <- as.factor(drsp14_data_trait2_sub$class)
 drsp14_data_trait2_sub$sexorientation <- as.factor(drsp14_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 D14_sexo <- drsp14_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(D14_sexo$group, D14_sexo$sexorientation)
+tab <- table(D14_sexo$class, D14_sexo$sexorientation)
 print(tab)
 # Run test
 res_D14_sexo <- stats::fisher.test(tab)
@@ -4092,14 +4091,14 @@ drsp14_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp14_data_tr
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -4107,14 +4106,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-drsp14_data_trait2_sub$group <- as.factor(drsp14_data_trait2_sub$group)
+drsp14_data_trait2_sub$class <- as.factor(drsp14_data_trait2_sub$class)
 drsp14_data_trait2_sub$houseincomecat <- as.factor(drsp14_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 D14_income <- drsp14_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(D14_income$group, D14_income$houseincomecat)
+tab <- table(D14_income$class, D14_income$houseincomecat)
 print(tab)
 # Run test
 res_D14_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -4128,7 +4127,7 @@ writeLines(res_D14_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = drsp14_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))
@@ -4230,13 +4229,13 @@ D15_trait_sub = merge(trait, d15groups, by = "id")
 ```
 
 ```{r}
-D15_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+D15_trait_sub %>% dplyr::select(id, class, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_insom ~ class, data = D15_trait_sub)
 
 ggstatsplot::ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4246,11 +4245,11 @@ ggstatsplot::ggbetweenstats(
 ```{r}
 
 #IDASI_traumint
-kruskal.test(IDASI_traumint ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_traumint ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4258,11 +4257,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_GENDEP ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4271,22 +4270,22 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_dys ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_lass ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_lass ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4294,11 +4293,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_sui ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4307,12 +4306,12 @@ ggbetweenstats(
 
 ```{r}
 trait_path = "/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/trait_comparisons"
-test = kruskal.test(IDASI_apploss ~ group, data = D15_trait_sub)
+test = kruskal.test(IDASI_apploss ~ class, data = D15_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4321,10 +4320,10 @@ ggsave(file.path(trait_path, "/IDASI_aploss.png"))
 
 
 ```{r}
-kruskal.test(IDASI_appgain ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_appgain ~ class, data = D15_trait_sub)
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4332,20 +4331,20 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_wb ~ class, data = D15_trait_sub)
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_illtemp ~ class, data = D15_trait_sub)
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4353,12 +4352,12 @@ ggbetweenstats(
 
 
 ```{r}
-test = kruskal.test(IDASI_mania ~ group, data = D15_trait_sub)
+test = kruskal.test(IDASI_mania ~ class, data = D15_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4367,11 +4366,11 @@ ggsave(file.path(trait_path, "/IDASI_mania.png"))
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_euph ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4379,16 +4378,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_panic ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-test = kruskal.test(IDASI_panic ~ group, data = D15_trait_sub)
+test = kruskal.test(IDASI_panic ~ class, data = D15_trait_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -4396,11 +4395,11 @@ ggsave(file.path(trait_path, "/panic_mania.png"))
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = D15_trait_sub)
+kruskal.test(IDASI_socanx ~ class, data = D15_trait_sub)
 
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4408,12 +4407,12 @@ ggbetweenstats(
 
 ```{r}
 D15_trait_sub$caffeine = as.numeric(D15_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = D15_trait_sub)
+# test = kruskal.test(caffeine ~ class, data = D15_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
 )
@@ -4422,10 +4421,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(age ~ group, data = D15_trait_sub)
+kruskal.test(age ~ class, data = D15_trait_sub)
 ggbetweenstats(
   data  = D15_trait_sub,
-  x     = group,
+  x     = class,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
@@ -4438,14 +4437,14 @@ D15_trait_sub <- D15_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-D15_trait_sub$group <- as.factor(D15_trait_sub$group)
+D15_trait_sub$class <- as.factor(D15_trait_sub$class)
 D15_trait_sub$race_eth_analysis <- as.factor(D15_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
 D15_race_eth <- D15_trait_sub %>% 
-  filter(!is.na(group), !is.na(race_eth_analysis)) %>%
+  filter(!is.na(class), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(D15_race_eth$group, D15_race_eth$race_eth_analysis)
+tab <- table(D15_race_eth$class, D15_race_eth$race_eth_analysis)
 print(tab)
 # Run test
 res_D15_race_eth <- fisher.test(tab)
@@ -4459,18 +4458,18 @@ writeLines(res_D15_race_eth, file.path(trait_path, "race_eth.txt"))
 ggbarstats(
   data  = D15_trait_sub,
   x     = race_eth_analysis_label,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
   data  = D15_trait_sub,
   x     = race_eth_analysis,
-  y     = group,
+  y     = class,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
-D15_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+D15_trait_sub %>% dplyr::select(id, class, race_eth_analysis)
 ```
 
 
@@ -4505,11 +4504,11 @@ drsp15_data_trait2_sub = unique(drsp15_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(passiveSI.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4518,11 +4517,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(activeSI.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4533,11 +4532,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drsp1_depblue.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(drsp1_depblue.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4546,11 +4545,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(drspx_cramps.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(drspx_cramps.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4559,12 +4558,12 @@ ggbetweenstats(
 
 ```{r}
 
-test = kruskal.test(drsp4_anxious.m ~ group, data = drsp15_data_trait2_sub)
+test = kruskal.test(drsp4_anxious.m ~ class, data = drsp15_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "drsp4_anxious.m.txt"))
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4572,21 +4571,21 @@ ggsave(file.path(trait_path, "drsp4_anxious.m.png"))
 ```
 
 ```{r}
-kruskal.test(drsp7b_irritable.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(drsp7b_irritable.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
 ```
 ```{r}
-kruskal.test(drsp7_angirr.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(drsp7_angirr.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drsp7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4595,10 +4594,10 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(panas_happy.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(panas_happy.m ~ class, data = drsp15_data_trait2_sub)
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = panas_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4608,11 +4607,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(drspx_notenjoy.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(drspx_notenjoy.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = drspx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4623,7 +4622,7 @@ ggbetweenstats(
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = ssri.m,
-  y     = group,
+  y     = class,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
 
 ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
@@ -4631,11 +4630,11 @@ ggsave(file.path(trait_path, "nonsignificant/ssri.png"))
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(physicalpain.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4644,11 +4643,11 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(numdrinks_yest.m ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(numdrinks_yest.m ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4656,11 +4655,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(numfullatt ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4668,11 +4667,11 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = drsp15_data_trait2_sub)
+kruskal.test(bmi ~ class, data = drsp15_data_trait2_sub)
 
 ggbetweenstats(
   data  = drsp15_data_trait2_sub,
-  x     = group,
+  x     = class,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
 )
@@ -4683,14 +4682,14 @@ ggbetweenstats(
 drsp15_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(drsp15_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$class <- as.factor(drsp15_data_trait2_sub$class)
 drsp15_data_trait2_sub$edu_clear123 <- as.factor(drsp15_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
 D15_edu <- drsp15_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(edu_clear123)) %>%
+  filter(!is.na(class), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(D15_edu$group, D15_edu$edu_clear123)
+tab <- table(D15_edu$class, D15_edu$edu_clear123)
 print(tab)
 # Run test
 res_D15_edu <- fisher.test(tab)
@@ -4703,27 +4702,27 @@ writeLines(res_D15_edu, file.path(trait_path, "edu.txt"))
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = edu_clear123_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = edu_clear123,
-  y     = group,
+  y     = class,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ```
 
 ```{r}
 
 # Ensure factors
-drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$class <- as.factor(drsp15_data_trait2_sub$class)
 drsp15_data_trait2_sub$sexorientation <- as.factor(drsp15_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
 D15_sexo <- drsp15_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(sexorientation)) %>%
+  filter(!is.na(class), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(D15_sexo$group, D15_sexo$sexorientation)
+tab <- table(D15_sexo$class, D15_sexo$sexorientation)
 print(tab)
 # Run test
 res_D15_sexo <- fisher.test(tab)
@@ -4737,14 +4736,14 @@ drsp15_data_trait2_sub$sexorientation_labeled <- haven::as_factor(drsp15_data_tr
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = sexorientation_labeled,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = sexorientation,
-  y     = group,
+  y     = class,
   title = "Distribution of Sexual Orientation across latent groups")
 ```
 
@@ -4752,14 +4751,14 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-drsp15_data_trait2_sub$group <- as.factor(drsp15_data_trait2_sub$group)
+drsp15_data_trait2_sub$class <- as.factor(drsp15_data_trait2_sub$class)
 drsp15_data_trait2_sub$houseincomecat <- as.factor(drsp15_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
 D15_income <- drsp15_data_trait2_sub %>% 
-  filter(!is.na(group), !is.na(houseincomecat)) %>%
+  filter(!is.na(class), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(D15_income$group, D15_income$houseincomecat)
+tab <- table(D15_income$class, D15_income$houseincomecat)
 print(tab)
 # Run test
 res_D15_income <- fisher.test(tab, simulate.p.value = TRUE, B = 10000)
@@ -4773,7 +4772,7 @@ writeLines(res_D15_income, file.path(trait_path, "houseincomecat.txt"))
 ggbarstats(
   data  = drsp15_data_trait2_sub,
   x     = houseincomecat,
-  y     = group,
+  y     = class,
   palette = "Set3",
   title = "Distribution of house income category across latent groups")
 ggsave(file.path(trait_path, "houseincomecat.png"))

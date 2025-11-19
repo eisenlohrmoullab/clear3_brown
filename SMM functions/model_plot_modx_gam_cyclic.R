@@ -52,7 +52,7 @@ model_plot_modx_gam_cyclic <- function(
     stringsAsFactors = FALSE
   )
   
-  ## 🔹 Baseline model without group
+  ## 🔹 Baseline model without class
   base_formula <- as.formula(glue(
     "{full_outcome} ~ s(id, bs = 're') + s({time_var}, id, bs = c('re', 'cc')) + s({time_var}, bs = 'cc')"
   ))
@@ -75,7 +75,7 @@ model_plot_modx_gam_cyclic <- function(
     writeLines(capture.output(summary(base_fit)), file.path(sub_dir, glue("{full_outcome}_noGroup_GAM_summary.txt")))
   }
   
-  # Iterate over all group sizes in smm result
+  # Iterate over all class sizes in smm result
   all_g <- names(smm_result$all_results)
   
   for (g in all_g) {
@@ -89,14 +89,14 @@ model_plot_modx_gam_cyclic <- function(
     data_with_group <- data %>%
       dplyr::select(id, all_of(c(outcome, paste0(outcome, "_log"), full_outcome, time_var))) %>%
       left_join(class_df, by = "id") %>%
-      filter(!is.na(group))
+      filter(!is.na(class))
     
-    # Make sure group is a factor
-    data_with_group$group <- as.factor(data_with_group$group)
+    # Make sure class is a factor
+    data_with_group$class <- as.factor(data_with_group$class)
     
     # 3️⃣ Fit GAM
     gam_formula <- as.formula(glue(
-      "{full_outcome} ~ s(id, bs = 're') + s({time_var}, id, bs = c('re', 'cc')) + group + s({time_var}, by = group, bs = c('cc'))"
+      "{full_outcome} ~ s(id, bs = 're') + s({time_var}, id, bs = c('re', 'cc')) + class + s({time_var}, by = class, bs = c('cc'))"
     ))
     
     gam_fit <- mgcv::gam(
@@ -127,10 +127,10 @@ model_plot_modx_gam_cyclic <- function(
     }
     
     # 7️⃣ Build prediction grid
-    group_levels = sort(unique(data_with_group$group))
+    group_levels = sort(unique(data_with_group$class))
     pred_grid <- expand.grid(
       temp_time = seq(-1, 1, length.out = 100),
-      group = factor(group_levels, levels = group_levels),
+      class = factor(group_levels, levels = group_levels),
       id = 0
     )
     names(pred_grid)[names(pred_grid) == "temp_time"] <- time_var
@@ -171,16 +171,16 @@ model_plot_modx_gam_cyclic <- function(
     }
     
     group_n <- data_with_group %>%
-      group_by(group) %>%
+      group_by(class) %>%
       summarise(n_id = n_distinct(id), .groups = "drop") %>%
       mutate(
-        group_label = paste0("Group ", group, " (N=", n_id, ")"),
-        group = as.factor(group)
+        group_label = paste0("class ", class, " (N=", n_id, ")"),
+        class = as.factor(class)
       )
     
     # Merge into prediction grid
     pred_grid <- pred_grid %>%
-      left_join(group_n, by = "group")
+      left_join(group_n, by = "class")
     
     p <- ggplot(pred_grid, aes_string(x = time_var, y = "estimate", color = "group_label")) +
       # Shading rectangles – fix fill by setting it outside aes()
@@ -193,7 +193,7 @@ model_plot_modx_gam_cyclic <- function(
         color = "white",
         show.legend = FALSE
       ) +
-      # Confidence ribbons – match group color or set distinct color scale
+      # Confidence ribbons – match class color or set distinct color scale
       geom_ribbon(
         aes(ymin = conf.low, ymax = conf.high, fill = group_label),
         alpha = if (show_CI) 0.2 else 0,
@@ -211,9 +211,9 @@ model_plot_modx_gam_cyclic <- function(
       labs(
         x = "",
         y = glue("{outcome}"),
-        title = glue("Model-Implied Curves for {outcome} with Group Moderator (g={g})"),
-        color = "Group",
-        fill = "Group"
+        title = glue("Model-Implied Curves for {outcome} with class Moderator (g={g})"),
+        color = "class",
+        fill = "class"
       ) +
       theme_minimal() +
       theme(legend.position = "bottom")
@@ -262,7 +262,7 @@ model_plot_modx_gam_cyclic <- function(
   ## 12️⃣ Plot GCV vs Groups
   gcv_results$group_size <- factor(gcv_results$group_size, levels = c("none", sort(setdiff(gcv_results$group_size, "none"))))
   gcv_plot <- ggplot(gcv_results, aes(x = group_size, y = GCV)) +
-    geom_line(group = 1) +
+    geom_line(class = 1) +
     geom_point() +
     labs(
       title = glue("GCV by Number of Groups for {outcome}"),
@@ -282,7 +282,7 @@ model_plot_modx_gam_cyclic <- function(
     )
     message(glue("✅ GCV plot saved as {gcv_plot_path}"))
   }
-  message("✅✅ All group GAMs processed and saved!")
+  message("✅✅ All class GAMs processed and saved!")
   
   ## Return
   return(list(

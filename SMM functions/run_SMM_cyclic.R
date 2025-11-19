@@ -43,7 +43,7 @@ run_smm_cyclic <- function(
   
   ## ========= MULTI-g WRAPPER ========= ##
   if (length(g) > 1) {
-    message(glue(">> Running multiple group sizes: {paste(g, collapse=', ')}"))
+    message(glue(">> Running multiple class sizes: {paste(g, collapse=', ')}"))
     all_results <- list()
     bic_table <- data.frame(groups = integer(), best_BIC = numeric())
     for (gval in g) {
@@ -134,7 +134,7 @@ run_smm_cyclic <- function(
   }
   
   km_res <- kmeans(scale(trajectory_matrix), centers = g)
-  cluster_map <- data.frame(id = id_vec, group = as.character(km_res$cluster))
+  cluster_map <- data.frame(id = id_vec, class = as.character(km_res$cluster))
   df <- dplyr::left_join(df, cluster_map, by = "id")
   
   ## EM
@@ -146,9 +146,9 @@ run_smm_cyclic <- function(
     preds <- matrix(NA, nrow = nrow(df), ncol = g)
     
     for (k in 1:g) {
-      dat_k <- df %>% dplyr::filter(group == k)
+      dat_k <- df %>% dplyr::filter(class == k)
       if (dplyr::n_distinct(dat_k$id) < 2) {
-        warning(glue("Group {k} has <2 participants. Stopping."))
+        warning(glue("class {k} has <2 participants. Stopping."))
         return(NULL)
       }
       models[[k]] <- gamm4::gamm4(
@@ -170,26 +170,26 @@ run_smm_cyclic <- function(
     
     group_map <- data.frame(
       id = resid_df$id,
-      group = apply(resid_df[, -1], 1, which.min)
+      class = apply(resid_df[, -1], 1, which.min)
     )
-    df <- dplyr::left_join(df %>% dplyr::select(-group), group_map, by = "id")
+    df <- dplyr::left_join(df %>% dplyr::select(-class), group_map, by = "id")
     
     logliks <- sapply(models, function(m) logLik(m$mer))
     LLK[i] <- sum(logliks)
     n_params <- sum(sapply(models, function(m) sum(summary(m$gam)$edf) + 1))
     BIC[i] <- -2 * LLK[i] + log(nrow(df)) * n_params
     
-    if (any(table(df$group) <= 20)) {
-      warning("At least one group has ≤20 observations. Stopping early.")
+    if (any(table(df$class) <= 20)) {
+      warning("At least one class has ≤20 observations. Stopping early.")
       break
     }
   }
   
-  final_class <- df %>% dplyr::select(id, group)
+  final_class <- df %>% dplyr::select(id, class)
   
-  ## ---------- Legend labels with group sizes ----------
+  ## ---------- Legend labels with class sizes ----------
   grp_counts <- df %>%
-    dplyr::group_by(group) %>%
+    dplyr::group_by(class) %>%
     dplyr::summarise(
       n = dplyr::n(),
       N = dplyr::n_distinct(id),
@@ -197,14 +197,14 @@ run_smm_cyclic <- function(
     )
   # merge counts so we can build a labeled factor
   df <- df %>%
-    dplyr::left_join(grp_counts, by = "group") %>%
+    dplyr::left_join(grp_counts, by = "class") %>%
     dplyr::mutate(
       group_lab = factor(
-        paste0(group, " (N=", N, ", n=", n, ")"),
+        paste0(class, " (N=", N, ", n=", n, ")"),
         levels = paste0(
-          sort(unique(group)),
-          " (N=", grp_counts$N[match(sort(unique(group)), grp_counts$group)],
-          ", n=", grp_counts$n[match(sort(unique(group)), grp_counts$group)],
+          sort(unique(class)),
+          " (N=", grp_counts$N[match(sort(unique(class)), grp_counts$class)],
+          ", n=", grp_counts$n[match(sort(unique(class)), grp_counts$class)],
           ")"
         )
       )
@@ -279,21 +279,21 @@ run_smm_cyclic <- function(
       geom_line(size = 0.9) +
       geom_ribbon(aes(ymin = mean_roll - se, ymax = mean_roll + se), alpha = 0.2, color = NA, show.legend = FALSE) +
       scale_x_continuous(breaks = x_breaks, labels = x_labels, limits = c(0, 1)) +
-      labs(title = paste(outcome, "Rolling Avg (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Rolling Mean Centered", color = "Group") +
+      labs(title = paste(outcome, "Rolling Avg (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Rolling Mean Centered", color = "class") +
       theme_minimal()
     
     p_centered <- ggplot(summary_centered, aes(x = cycleday_5perc, y = mean_centered, color = group_lab, fill = group_lab)) +
       geom_line(size = 0.9) +
       geom_ribbon(aes(ymin = mean_centered - se, ymax = mean_centered + se), alpha = 0.2, color = NA, show.legend = FALSE) +
       scale_x_continuous(breaks = x_breaks, labels = x_labels, limits = c(0, 1)) +
-      labs(title = paste(outcome, ": Person-Centered (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Mean Centered", color = "Group") +
+      labs(title = paste(outcome, ": Person-Centered (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Mean Centered", color = "class") +
       theme_minimal()
     
     p_mean <- ggplot(summary_mean, aes(x = cycleday_5perc, y = mean_outcome, color = group_lab, fill = group_lab)) +
       geom_line(size = 0.9) +
       geom_ribbon(aes(ymin = mean_outcome - se, ymax = mean_outcome + se), alpha = 0.2, color = NA, show.legend = FALSE) +
       scale_x_continuous(breaks = x_breaks, labels = x_labels, limits = c(0, 1)) +
-      labs(title = paste(outcome, ": Mean (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Mean Outcome", color = "Group") +
+      labs(title = paste(outcome, ": Mean (G =", g, ")"), x = "Percentage of Phase Elapsed", y = "Mean Outcome", color = "class") +
       theme_minimal()
     
     print(p_roll); print(p_centered); print(p_mean)
@@ -318,7 +318,7 @@ run_smm_cyclic <- function(
     BIC = BIC,
     summary = df %>%
       dplyr::distinct(id, .keep_all = TRUE) %>%
-      dplyr::group_by(group) %>%
+      dplyr::group_by(class) %>%
       dplyr::summarise(
         n = dplyr::n(),
         mean_outcome = mean(.data[[outcome]], na.rm = TRUE),
