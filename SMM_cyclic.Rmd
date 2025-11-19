@@ -30,7 +30,7 @@ conflicted::conflicts_prefer(
 )
   
 
-func_dir <- "/Users/anishan/Documents/CLEAR Lab Repos/sleep_Oura_baseline/SMM functions"
+func_dir <- "SMM functions"
 
 list.files(func_dir, pattern = "\\.[rR]$", full.names = TRUE) %>% 
   walk(source)
@@ -39,177 +39,79 @@ cat("✅ All SMM function scripts sourced!")
 ```
 
 
-# Import Data 
-
-```{r}
-
-dat3 = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/AIM_1_sleep_cycle/prepped_data/aim1data_oura.rds")
-  
-dat123 = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/AIM_1_sleep_cycle/prepped_data/aim1data123.rds")
-
-
-trait = haven::read_sav("/Users/anishan/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/02_datasets/CLEAR3_TRAIT/03_cleaned_data/clear3trait_07_10_25.sav")
-trait123 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123ctrls_demotable.sav")
-trait1 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR1/02_datasets/CLEAR1_TRAIT/03_cleaned_data/2022-01-06_CLEAR1_TRAIT.sav")
-trait2 = haven::read_sav("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR2/02_datasets/CLEAR2_TRAIT/03_cleaned_data/2024-07-09_clear2trait.sav")
-
-
-
-trait1 = trait1 %>% dplyr::select(id, caffeine)
-trait2 = trait2 %>% dplyr::select(id, caffeine, starts_with("IDASI"))
-```
-
-
-# Compute SI variables 
-
-```{r}
-create_SI_vars <- function(df) {
-  df %>%
-    mutate(
-      passiveSI = rowMeans(across(c(ASIQ1_betternotalive, ASIQ9_wishdead, ASIQ19_lifenotworth, wishsleep)), na.rm = TRUE),
-      activeSI = rowMeans(across(c(ASIQ2_thoughtkill, ASIQ17_thoughtkillnotdo, ASIQ25_notbetterkill, wantedkill)), na.rm = TRUE),
-      activeSI_log = log(activeSI + 1), 
-      passiveSI_log = log(passiveSI + 1)
-    ) %>%
-    group_by(id) %>%
-    mutate(
-      passiveSI.m = mean(passiveSI, na.rm = TRUE),
-      passiveSI.d = passiveSI - passiveSI.m, 
-      passiveSI_log.m = mean(passiveSI_log, na.rm = TRUE),
-      passiveSI_log.d = passiveSI_log - passiveSI_log.m,
-      activeSI.m = mean(activeSI, na.rm = TRUE),
-      activeSI.d = activeSI - activeSI.m, 
-      activeSI_log.m = mean(activeSI_log, na.rm = TRUE),
-      activeSI_log.d = activeSI_log - activeSI_log.m,
-      passiveSI.d.roll = if (sum(!is.na(passiveSI.d)) < 3) {
-        NA_real_
-      } else {
-        rollapply(passiveSI.d, width = 3, mean, fill = NA, align = "center")
-      }
-    ) %>%
-    ungroup()
-}
-
-dataset_list <- list(dat3)
-processed_list <- lapply(dataset_list, create_SI_vars)
-names(processed_list) <- c("dat3")
-list2env(processed_list, envir = .GlobalEnv)
-```
-
-```{r}
-create_SI_vars_lc <- function(df) {
-  df %>%
-    mutate(
-      passiveSI = rowMeans(across(c(asiq1_betternotalive, asiq9_wishdead, asiq19_lifenotworth, wishsleep)), na.rm = TRUE),
-      activeSI = rowMeans(across(c(asiq2_thoughtkill, asiq17_thoughtkillnotdo, asiq25_notbetterkill, wantedkill)), na.rm = TRUE),
-      activeSI_log = log(activeSI + 1), 
-      passiveSI_log = log(passiveSI + 1)
-    ) %>%
-    group_by(id) %>%
-    mutate(
-      passiveSI.m = mean(passiveSI, na.rm = TRUE),
-      passiveSI.d = passiveSI - passiveSI.m, 
-      passiveSI_log.m = mean(passiveSI_log, na.rm = TRUE),
-      passiveSI_log.d = passiveSI_log - passiveSI_log.m,
-      activeSI.m = mean(activeSI, na.rm = TRUE),
-      activeSI.d = activeSI - activeSI.m, 
-      activeSI_log.m = mean(activeSI_log, na.rm = TRUE),
-      activeSI_log.d = activeSI_log - activeSI_log.m,
-      passiveSI.d.roll = if (sum(!is.na(passiveSI.d)) < 3) {
-        NA_real_
-      } else {
-        rollapply(passiveSI.d, width = 3, mean, fill = NA, align = "center")
-      }
-    ) %>%
-    ungroup()
-}
-
-dataset_list <- list(dat123)
-processed_list <- lapply(dataset_list, create_SI_vars_lc)
-names(processed_list) <- c( "dat123")
-list2env(processed_list, envir = .GlobalEnv)
-```
-
-```{r}
-dat3 = menstrualcycleR::pacts_scaling(dat3, id, daterated, menses, ovtoday)
-
-dat123 = menstrualcycleR::pacts_scaling(dat123, id, daterated, menses, ovtoday)
-```
-
-
 
 
 # Modeling 
 
-## WASO 
+## Steps
 
 ### Step 1: preprocess outcome/ subset by phase 
 
 ```{r}
 
-dat3 = preprocess_outcome(dat3, "WASO_SRI_lag")
+df = preprocess_outcome(df, "Oura_Activity_steps")
 #2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
 
-WASO <- subset_by_phase_cyclic(
-  data = dat3,
-  outcome = "WASO_SRI_lag",
+steps <- subset_by_phase_cyclic(
+  data = df,
+  outcome = "Oura_Activity_steps",
   time_var = "cyclic_time_impute",
   min_obs = 5
 )
 
-WASO_data_subset <-WASO$data_subset
+steps_data_subset <-steps$data_subset
 
 ```
 
 ### Step 2:  run SMM
 
 ```{r}
-resWASO_menses <- run_smm_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
+ressteps_menses <- run_smm_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
   g = 2:3, #this will check for solutions for 2-5 groups
   d_inter = 20,
   k_smooth = 10,
-  plot = T, 
+  plot = F, 
   centering = "menses", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
-resWASO_ov <- run_smm_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
+ressteps_ov <- run_smm_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
   g = 2:3, #this will check for solutions for 2-5 groups
   d_inter = 20,
   k_smooth = 10,
-  plot = T, 
+  plot = F, 
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
-# WASO_data_subset$cyclic_perc = ((WASO_data_subset$cyclic_time_impute + 1) / 2)
-# WASO_data_subset$cyclic_5perc = round(WASO_data_subset$cyclic_perc / 0.05) * 0.05
+# steps_data_subset$cyclic_perc = ((steps_data_subset$cyclic_time_impute + 1) / 2)
+# steps_data_subset$cyclic_5perc = round(steps_data_subset$cyclic_perc / 0.05) * 0.05
 # 
-# WASO_data_subset %>% dplyr::select(c(id, daterated, cyclic_time_impute, cyclic_perc, cyclic_5perc))
+# steps_data_subset %>% dplyr::select(c(id, daterated, cyclic_time_impute, cyclic_perc, cyclic_5perc))
 ```
 
 ### Step 3: compare BIC
 
 ```{r}
-WASO_bic_result_menses <- compare_bic_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
+steps_bic_result_menses <- compare_bic_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
   centering = "menses",
-  smm_results = resWASO_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  smm_results = ressteps_menses, #put in the result object from step 3
+  save_dir = "output"
 )
 
-WASO_bic_result_ov <- compare_bic_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
+steps_bic_result_ov <- compare_bic_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
   centering = "ovulation",
-  smm_results = resWASO_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  smm_results = ressteps_ov, #put in the result object from step 3
+  save_dir = "output"
 )
 
 ```
@@ -217,49 +119,50 @@ WASO_bic_result_ov <- compare_bic_cyclic(
 ### Step 4: Model Subgroup Membership as a Moderator
 
 ```{r}
-WASOgams_menses = model_plot_modx_gam_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
-  smm_result = resWASO_menses, #put in the result object from step 3
+steps_data_subset <- steps_data_subset %>% select(-group)
+stepsgams_menses = model_plot_modx_gam_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
+  smm_result = ressteps_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
-WASOgams_ov = model_plot_modx_gam_cyclic(
-  data = WASO_data_subset,
-  outcome = "WASO_SRI_lag",
-  smm_result = resWASO_ov, #put in the result object from step 3
+stepsgams_ov = model_plot_modx_gam_cyclic(
+  data = steps_data_subset,
+  outcome = "Oura_Activity_steps",
+  smm_result = ressteps_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
 
-WASOgams_menses$gcv_plot
+stepsgams_menses$gcv_plot
 ```
 
 ### trait comparisons 
 
 `
 ```{r}
-WASOgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/WASO_SRI_lag/menses_centered/WASO_SRI_lag_g2_class.csv")
+stepsgroups = read.csv("output/20250902/Oura_Activity_steps/menses_centered/Oura_Activity_steps_g2_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
-WASO_trait_sub = merge(trait, WASOgroups, by = "id")
+steps_trait_sub = merge(trait, stepsgroups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/WASO_SRI_lag/trait_comparisons"
+trait_path = "output/20250902/Oura_Activity_steps/trait_comparisons"
 ```
 
 ```{r}
-WASO_trait_sub %>% dplyr::select(id, group, IDASI_insom)
+steps_trait_sub %>% dplyr::select(id, group, IDASI_insom)
 
-kruskal.test(IDASI_insom ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_insom ~ group, data = steps_trait_sub)
 
 ggstatsplot::ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_insom,
   title = "Distribution of IDAS insomnia across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -270,10 +173,10 @@ ggstatsplot::ggbetweenstats(
 ```{r}
 
 #IDASI_traumint
-kruskal.test(IDASI_traumint ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_traumint ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_traumint,
   title = "Distribution of IDAS Traumatic Intrusions across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -282,10 +185,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_GENDEP ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_GENDEP ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_GENDEP,
   title = "Distribution of IDAS General Depression across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -295,10 +198,10 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_dys ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_dys ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_dys,
   title = "Distribution of IDAS Dysphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -306,10 +209,10 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(IDASI_lass ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_lass ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_lass,
   title = "Distribution of IDAS Lassitude across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -318,10 +221,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_sui ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_sui ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_sui,
   title = "Distribution of IDAS Suicidality across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -331,11 +234,11 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(IDASI_apploss ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_apploss ~ group, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_aploss.txt"))
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_apploss,
   title = "Distribution of IDAS Appetite Loss across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -345,9 +248,9 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_appgain ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_appgain ~ group, data = steps_trait_sub)
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_appgain,
   title = "Distribution of IDAS Appetite Gain across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -356,9 +259,9 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_wb ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_wb ~ group, data = steps_trait_sub)
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_wb,
   title = "Distribution of IDAS Well-being across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -366,9 +269,9 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(IDASI_illtemp ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_illtemp ~ group, data = steps_trait_sub)
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_illtemp,
   title = "Distribution of IDAS Ill Temper across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -377,11 +280,11 @@ ggbetweenstats(
 
 
 ```{r}
-# test = kruskal.test(IDASI_mania ~ group, data = WASO_trait_sub)
+# test = kruskal.test(IDASI_mania ~ group, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_mania.txt"))
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_mania,
   title = "Distribution of IDAS Mania across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -391,10 +294,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_euph ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_euph ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_euph,
   title = "Distribution of IDAS Euphoria across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -403,16 +306,16 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_panic ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_panic ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_panic,
   title = "Distribution of IDAS Panic across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
 )
 
-# test = kruskal.test(IDASI_panic ~ group, data = WASO_trait_sub)
+# test = kruskal.test(IDASI_panic ~ group, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/IDASI_panic.txt"))
 # ggsave(file.path(trait_path, "/panic_mania.png"))
@@ -420,10 +323,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(IDASI_socanx ~ group, data = WASO_trait_sub)
+kruskal.test(IDASI_socanx ~ group, data = steps_trait_sub)
 
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = IDASI_socanx,
   title = "Distribution of IDAS Social Anxiety across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -431,12 +334,12 @@ ggbetweenstats(
 ```
 
 ```{r}
-WASO_trait_sub$caffeine = as.numeric(WASO_trait_sub$caffeine)
-# test = kruskal.test(caffeine ~ group, data = WASO_trait_sub)
+steps_trait_sub$caffeine = as.numeric(steps_trait_sub$caffeine)
+# test = kruskal.test(caffeine ~ group, data = steps_trait_sub)
 # test = capture.output(test)
 # writeLines(test, file.path(trait_path, "/caffeine.txt"))
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = caffeine,
   title = "Distribution of Caffeine across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none"
@@ -446,9 +349,9 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(age ~ group, data = WASO_trait_sub)
+kruskal.test(age ~ group, data = steps_trait_sub)
 ggbetweenstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = group,
   y     = age,
   title = "Distribution of age across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric"
@@ -457,53 +360,53 @@ ggbetweenstats(
 
 
 ```{r}
-WASO_trait_sub <- WASO_trait_sub %>%
+steps_trait_sub <- steps_trait_sub %>%
   mutate(race_eth_analysis_label = haven::as_factor(race_eth_analysis))
 
 # Ensure factors
-WASO_trait_sub$group <- as.factor(WASO_trait_sub$group)
-WASO_trait_sub$race_eth_analysis <- as.factor(WASO_trait_sub$race_eth_analysis)
+steps_trait_sub$group <- as.factor(steps_trait_sub$group)
+steps_trait_sub$race_eth_analysis <- as.factor(steps_trait_sub$race_eth_analysis)
 # Filter & drop unused levels
-WASO_race_eth <- WASO_trait_sub %>% 
+steps_race_eth <- steps_trait_sub %>% 
   filter(!is.na(group), !is.na(race_eth_analysis)) %>%
   droplevels()
 # Create table
-tab <- table(WASO_race_eth$group, WASO_race_eth$race_eth_analysis)
+tab <- table(steps_race_eth$group, steps_race_eth$race_eth_analysis)
 print(tab)
 # Run test
-res_WASO_race_eth <- stats::fisher.test(tab)
-print(res_WASO_race_eth)
+res_steps_race_eth <- stats::fisher.test(tab)
+print(res_steps_race_eth)
 
-res_WASO_race_eth = capture.output(res_WASO_race_eth)
+res_steps_race_eth = capture.output(res_steps_race_eth)
 
-writeLines(res_WASO_race_eth, file.path(trait_path, "race_eth.txt"))
+writeLines(res_steps_race_eth, file.path(trait_path, "race_eth.txt"))
 
          
 ggbarstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = race_eth_analysis_label,
   y     = group,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth_labeled.png"))
 
 ggbarstats(
-  data  = WASO_trait_sub,
+  data  = steps_trait_sub,
   x     = race_eth_analysis,
   y     = group,
   title = "Distribution of race and ethnicity across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric")
 ggsave(file.path(trait_path, "race_eth.png"))
 
-WASO_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
+steps_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
 ```
 
 
 ```{r}
-WASO_data_trait2_sub <- dat3 %>%
+steps_data_trait2_sub <- df %>%
   dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
                   "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
                   "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
 
-WASO_data_trait2_sub <- WASO_data_trait2_sub %>%
+steps_data_trait2_sub <- steps_data_trait2_sub %>%
     group_by(id) %>%
     mutate(DRSP1_depblue.m =  mean(DRSP1_depblue, na.rm = TRUE)) %>%
     mutate(DRSPx_cramps.m =  mean(DRSPx_cramps, na.rm = TRUE)) %>%
@@ -517,23 +420,23 @@ WASO_data_trait2_sub <- WASO_data_trait2_sub %>%
     mutate(SSRI.m = ifelse(mean(SSRI, na.rm = TRUE) > 0, 1, 0)) %>%
     ungroup()
     
-WASO_data_trait2_sub <- WASO_data_trait2_sub %>%
+steps_data_trait2_sub <- steps_data_trait2_sub %>%
  dplyr::select(any_of(c("id", "DRSP1_depblue.m", "DRSPx_cramps.m", "DRSP4_anxious.m", "DRSP7b_irritable.m", "panas_happy.m","DRSPx_notenjoy.m",
                   "SSRI.m", "physicalpain.m", "numdrinks_yest.m", "numfullatt", "bmi", 
                   "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "DRSP15_troublesleep.m", "passiveSI.m", "activeSI.m", "DRSP7_angirr.m", "PANAS_happy.m")))
 
-WASOgroups$id = as.factor(WASOgroups$id)
+stepsgroups$id = as.factor(stepsgroups$id)
 
-WASO_data_trait2_sub = left_join(WASOgroups, WASO_data_trait2_sub, by = "id")
+steps_data_trait2_sub = left_join(stepsgroups, steps_data_trait2_sub, by = "id")
 
-WASO_data_trait2_sub = unique(WASO_data_trait2_sub)
+steps_data_trait2_sub = unique(steps_data_trait2_sub)
 ```
 
 ```{r}
-kruskal.test(passiveSI.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(passiveSI.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = passiveSI.m,
   title = "Distribution of Mean Passive SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -543,10 +446,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(activeSI.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(activeSI.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = activeSI.m,
   title = "Distribution of Mean Active SI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -558,10 +461,10 @@ ggbetweenstats(
 
 ```{r}
 
-kruskal.test(DRSP1_depblue.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(DRSP1_depblue.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSP1_depblue.m,
   title = "Distribution of Mean Depressed Mood across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -571,10 +474,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(DRSPx_cramps.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(DRSPx_cramps.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSPx_cramps.m,
   title = "Distribution of Mean Cramps across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -584,11 +487,11 @@ ggbetweenstats(
 
 ```{r}
 
-# test = kruskal.test(DRSP4_anxious.m ~ group, data = WASO_data_trait2_sub)
+# test = kruskal.test(DRSP4_anxious.m ~ group, data = steps_data_trait2_sub)
 # test = capture.output(test)
 #writeLines(test, file.path(trait_path, "DRSP4_anxious.m.txt"))
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSP4_anxious.m,
   title = "Distribution of Mean Anxiety across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -597,10 +500,10 @@ ggbetweenstats(
 ```
 
 ```{r}
-kruskal.test(DRSP7b_irritable.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(DRSP7b_irritable.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSP7b_irritable.m,
   title = "Distribution of Mean Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -609,10 +512,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(DRSP7_angirr.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(DRSP7_angirr.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSP7_angirr.m,
   title = "Distribution of Mean Anger/Irritability across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -622,11 +525,11 @@ ggbetweenstats(
 
 ```{r}
 
-test = kruskal.test(PANAS_happy.m ~ group, data = WASO_data_trait2_sub)
+test = kruskal.test(PANAS_happy.m ~ group, data = steps_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "panas_happy.m.txt"))
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = PANAS_happy.m,
   title = "Distribution of Mean Happiness across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -637,10 +540,10 @@ ggsave(file.path(trait_path, "panas_happy.m.png"))
 
 ```{r}
 
-kruskal.test(DRSPx_notenjoy.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(DRSPx_notenjoy.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = DRSPx_notenjoy.m,
   title = "Distribution of Mean Not Enjoy across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -650,7 +553,7 @@ ggbetweenstats(
 ```{r}
 
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = SSRI.m,
   y     = group,
   title = "Distribution of SSRI use across latent groups", messages = T, pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none")
@@ -660,10 +563,10 @@ ggbarstats(
 
 
 ```{r}
-kruskal.test(physicalpain.m ~ group, data = WASO_data_trait2_sub)
+kruskal.test(physicalpain.m ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = physicalpain.m,
   title = "Distribution of Mean Physical Pain across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -673,11 +576,11 @@ ggbetweenstats(
 ```
 
 ```{r}
-test = kruskal.test(numdrinks_yest.m ~ group, data = WASO_data_trait2_sub)
+test = kruskal.test(numdrinks_yest.m ~ group, data = steps_data_trait2_sub)
 test = capture.output(test)
 writeLines(test, file.path(trait_path, "numdrinks.m.txt"))
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = numdrinks_yest.m,
   title = "Distribution of Mean Number of Drinks across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -688,10 +591,10 @@ ggsave(file.path(trait_path, "mean_drinks.png"))
 
 
 ```{r}
-kruskal.test(numfullatt ~ group, data = WASO_data_trait2_sub)
+kruskal.test(numfullatt ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = numfullatt,
   title = "Distribution of Number of Attempts across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -700,10 +603,10 @@ ggbetweenstats(
 
 
 ```{r}
-kruskal.test(bmi ~ group, data = WASO_data_trait2_sub)
+kruskal.test(bmi ~ group, data = steps_data_trait2_sub)
 
 ggbetweenstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = group,
   y     = bmi,
   title = "Distribution of BMI across latent groups", messages = T,pairwise_comparisons = T, pairwise.display = "significant", p.adjust.method = "none", type = "nonparametric", results.subtitle = T, var.equal = F
@@ -712,34 +615,34 @@ ggbetweenstats(
 
 
 ```{r}
-WASO_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(WASO_data_trait2_sub$edu_clear123)
+steps_data_trait2_sub$edu_clear123_labeled <- haven::as_factor(steps_data_trait2_sub$edu_clear123)
 
 # Ensure factors
-WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
-WASO_data_trait2_sub$edu_clear123 <- as.factor(WASO_data_trait2_sub$edu_clear123)
+steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$edu_clear123 <- as.factor(steps_data_trait2_sub$edu_clear123)
 # Filter & drop unused levels
-WASO_edu <- WASO_data_trait2_sub %>% 
+steps_edu <- steps_data_trait2_sub %>% 
   filter(!is.na(group), !is.na(edu_clear123)) %>%
   droplevels()
 # Create table
-tab <- table(WASO_edu$group, WASO_edu$edu_clear123)
+tab <- table(steps_edu$group, steps_edu$edu_clear123)
 print(tab)
 # Run test
-res_WASO_edu <- stats::fisher.test(tab)
-print(res_WASO_edu)
+res_steps_edu <- stats::fisher.test(tab)
+print(res_steps_edu)
 
-res_WASO_edu = capture.output(res_WASO_edu)
+res_steps_edu = capture.output(res_steps_edu)
 
-writeLines(res_WASO_edu, file.path(trait_path, "edu.txt"))
+writeLines(res_steps_edu, file.path(trait_path, "edu.txt"))
 
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = edu_clear123_labeled,
   y     = group,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
 ggsave(file.path(trait_path, "edu_labelled.png"))
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = edu_clear123,
   y     = group,
   title = "Distribution of Education across latent groups", messages = T,  pairwise.display = "significant", p.adjust.method = "none")
@@ -748,33 +651,33 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
-WASO_data_trait2_sub$sexorientation <- as.factor(WASO_data_trait2_sub$sexorientation)
+steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$sexorientation <- as.factor(steps_data_trait2_sub$sexorientation)
 # Filter & drop unused levels
-WASO_sexo <- WASO_data_trait2_sub %>% 
+steps_sexo <- steps_data_trait2_sub %>% 
   filter(!is.na(group), !is.na(sexorientation)) %>%
   droplevels()
 # Create table
-tab <- table(WASO_sexo$group, WASO_sexo$sexorientation)
+tab <- table(steps_sexo$group, steps_sexo$sexorientation)
 print(tab)
 # Run test
-res_WASO_sexo <- stats::fisher.test(tab)
-print(res_WASO_sexo)
+res_steps_sexo <- stats::fisher.test(tab)
+print(res_steps_sexo)
 
-res_WASO_sexo = capture.output(res_WASO_sexo)
+res_steps_sexo = capture.output(res_steps_sexo)
 
-writeLines(res_WASO_sexo, file.path(trait_path, "sexorientation.txt"))
+writeLines(res_steps_sexo, file.path(trait_path, "sexorientation.txt"))
 
-WASO_data_trait2_sub$sexorientation_labeled <- haven::as_factor(WASO_data_trait2_sub$sexorientation)
+steps_data_trait2_sub$sexorientation_labeled <- haven::as_factor(steps_data_trait2_sub$sexorientation)
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = sexorientation_labeled,
   y     = group,
   title = "Distribution of Sexual Orientation across latent groups")
 ggsave(file.path(trait_path, "sex_orient.png"))
 
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = sexorientation,
   y     = group,
   title = "Distribution of Sexual Orientation across latent groups")
@@ -784,26 +687,26 @@ ggbarstats(
 ```{r}
 
 # Ensure factors
-WASO_data_trait2_sub$group <- as.factor(WASO_data_trait2_sub$group)
-WASO_data_trait2_sub$houseincomecat <- as.factor(WASO_data_trait2_sub$houseincomecat)
+steps_data_trait2_sub$group <- as.factor(steps_data_trait2_sub$group)
+steps_data_trait2_sub$houseincomecat <- as.factor(steps_data_trait2_sub$houseincomecat)
 # Filter & drop unused levels
-WASO_income <- WASO_data_trait2_sub %>% 
+steps_income <- steps_data_trait2_sub %>% 
   filter(!is.na(group), !is.na(houseincomecat)) %>%
   droplevels()
 # Create table
-tab <- table(WASO_income$group, WASO_income$houseincomecat)
+tab <- table(steps_income$group, steps_income$houseincomecat)
 print(tab)
 # Run test
-res_WASO_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
-print(res_WASO_income)
+res_steps_income <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+print(res_steps_income)
 
-res_WASO_income = capture.output(res_WASO_income)
+res_steps_income = capture.output(res_steps_income)
 
-writeLines(res_WASO_income, file.path(trait_path, "houseincomecat.txt"))
+writeLines(res_steps_income, file.path(trait_path, "houseincomecat.txt"))
 
 
 ggbarstats(
-  data  = WASO_data_trait2_sub,
+  data  = steps_data_trait2_sub,
   x     = houseincomecat,
   y     = group,
   palette = "Set3",
@@ -821,11 +724,11 @@ ggsave(file.path(trait_path, "houseincomecat.png"))
 ## REM
 
 ```{r}
-dat3 = preprocess_outcome(dat3, "rempercTST_SRI_lag")
+df = preprocess_outcome(df, "rempercTST_SRI_lag")
 #2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
 
 REM <- subset_by_phase_cyclic(
-  data = dat3,
+  data = df,
   outcome = "rempercTST_SRI_lag",
   time_var = "cyclic_time_impute",
   min_obs = 5
@@ -843,7 +746,7 @@ resREM_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -856,7 +759,7 @@ resREM_ov <- run_smm_cyclic(
   plot = T, 
   log_var = F,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -866,7 +769,7 @@ REM_bic_result_menses <- compare_bic_cyclic(
   centering = "menses",
   smm_results = resREM_menses, #put in the result object from step 3
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -876,7 +779,7 @@ REM_bic_result_ov <- compare_bic_cyclic(
   centering = "ovulation",
   smm_results = resREM_ov, #put in the result object from step 3
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 REMgams_menses = model_plot_modx_gam_cyclic(
@@ -885,7 +788,7 @@ REMgams_menses = model_plot_modx_gam_cyclic(
   smm_result = resREM_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 REMgams_ov = model_plot_modx_gam_cyclic(
@@ -894,7 +797,7 @@ REMgams_ov = model_plot_modx_gam_cyclic(
   smm_result = resREM_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -906,14 +809,14 @@ resREM_ov$all_results$`2`
 ### Trait Comparisons
 
 ```{r}
-REMgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/rempercTST_SRI_lag/ovulation_centered/rempercTST_SRI_lag_g2_class.csv")
+REMgroups = read.csv("output/20250903/rempercTST_SRI_lag/ovulation_centered/rempercTST_SRI_lag_g2_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
 REM_trait_sub = merge(trait, REMgroups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/rempercTST_SRI_lag/trait_comparisons"
+trait_path = "output/20250903/rempercTST_SRI_lag/trait_comparisons"
 ```
 
 ```{r}
@@ -1164,7 +1067,7 @@ REM_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
 
 
 ```{r}
-REM_data_trait2_sub <- dat3 %>%
+REM_data_trait2_sub <- df %>%
   dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
                   "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
                   "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
@@ -1495,11 +1398,11 @@ REM_data_trait2_sub %>% filter(group == 2) %>% summarise(mean = mean(DRSPx_cramp
 
 
 ```{r}
-dat3 = preprocess_outcome(dat3, "Oura_Sleep_Efficiencyperc_lag")
+df = preprocess_outcome(df, "Oura_Sleep_Efficiencyperc_lag")
 #2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
 
 SE <- subset_by_phase_cyclic(
-  data = dat3,
+  data = df,
   outcome = "Oura_Sleep_Efficiencyperc_lag",
   time_var = "cyclic_time_impute",
   min_obs = 5
@@ -1517,7 +1420,7 @@ resSE_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -1530,7 +1433,7 @@ resSE_ov <- run_smm_cyclic(
   plot = T, 
   log_var = F,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -1540,7 +1443,7 @@ SE_bic_result_menses <- compare_bic_cyclic(
   centering = "menses",
   log_var = F,
   smm_results = resSE_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -1550,7 +1453,7 @@ SE_bic_result_ov <- compare_bic_cyclic(
   centering = "ovulation",
   log_var = F,
   smm_results = resSE_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 SEgams_menses = model_plot_modx_gam_cyclic(
@@ -1559,7 +1462,7 @@ SEgams_menses = model_plot_modx_gam_cyclic(
   smm_result = resSE_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 SEgams_ov = model_plot_modx_gam_cyclic(
@@ -1568,7 +1471,7 @@ SEgams_ov = model_plot_modx_gam_cyclic(
   smm_result = resSE_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -1577,14 +1480,14 @@ SEgams_ov = model_plot_modx_gam_cyclic(
 #### trait comparisons 
 
 ```{r}
-SEgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/Oura_Sleep_Efficiencyperc_lag/menses_centered/Oura_Sleep_Efficiencyperc_lag_g3_class.csv")
+SEgroups = read.csv("output/20250903/Oura_Sleep_Efficiencyperc_lag/menses_centered/Oura_Sleep_Efficiencyperc_lag_g3_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
 SE_trait_sub = merge(trait, SEgroups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250903/Oura_Sleep_Efficiencyperc_lag/trait_comparisons"
+trait_path = "output/20250903/Oura_Sleep_Efficiencyperc_lag/trait_comparisons"
 ```
 
 ```{r}
@@ -1835,7 +1738,7 @@ SE_trait_sub %>% dplyr::select(id, group, race_eth_analysis)
 
 
 ```{r}
-SE_data_trait2_sub <- dat3 %>%
+SE_data_trait2_sub <- df %>%
   dplyr::select((c("id", "DRSP1_depblue", "DRSPx_cramps", "DRSP4_anxious", "DRSP7b_irritable", "PANAS_happy","DRSPx_notenjoy",
                   "SSRI", "physicalpain", "numdrinks_yest", "numfullatt", "bmi",
                   "edu_clear123", "houseincomecat", "sexorientation", "rel_maritalstatus", "passiveSI.m", "activeSI.m", "DRSP7_angirr")))
@@ -2153,11 +2056,11 @@ ggsave(file.path(trait_path, "houseincomecat.png"))
 ## Sleep Onset Latency - no convergence 
 
 ```{r}
-dat3 = preprocess_outcome(dat3, "Oura_Sleep_SleepOnsetLatency_lag")
+df = preprocess_outcome(df, "Oura_Sleep_SleepOnsetLatency_lag")
 #2. subset your dataset, so you have at least 5 observations in the luteal phase, and 5 in the follicular phase for each id 
 
 SOL <- subset_by_phase_cyclic(
-  data = dat3,
+  data = df,
   outcome = "Oura_Sleep_SleepOnsetLatency_lag",
   time_var = "cyclic_time_impute",
   min_obs = 5
@@ -2175,7 +2078,7 @@ resSOL_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2188,7 +2091,7 @@ resSOL_ov <- run_smm_cyclic(
   plot = T, 
   log_var = T,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2197,7 +2100,7 @@ SOL_bic_result_menses <- compare_bic_cyclic(
   outcome = "Oura_Sleep_SleepOnsetLatency_lag",
   centering = "menses",
   smm_results = resSOL_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2206,7 +2109,7 @@ SOL_bic_result_ov <- compare_bic_cyclic(
   outcome = "Oura_Sleep_SleepOnsetLatency_lag",
   centering = "ovulation",
   smm_results = resSOL_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 SOLgams_menses = model_plot_modx_gam_cyclic(
@@ -2215,7 +2118,7 @@ SOLgams_menses = model_plot_modx_gam_cyclic(
   smm_result = resSOL_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 SOLgams_ov = model_plot_modx_gam_cyclic(
@@ -2224,7 +2127,7 @@ SOLgams_ov = model_plot_modx_gam_cyclic(
   smm_result = resSOL_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -2256,7 +2159,7 @@ resSQ_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2269,7 +2172,7 @@ resSQ_ov <- run_smm_cyclic(
   plot = T, 
   log_var = F,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2279,7 +2182,7 @@ SQ_bic_result_menses <- compare_bic_cyclic(
   centering = "menses",
   smm_results = resSQ_menses, #put in the result object from step 3
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2289,7 +2192,7 @@ SQ_bic_result_ov <- compare_bic_cyclic(
   centering = "ovulation",
   log_var = F,
   smm_results = resSQ_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 SQgams_menses = model_plot_modx_gam_cyclic(
@@ -2298,7 +2201,7 @@ SQgams_menses = model_plot_modx_gam_cyclic(
   smm_result = resSQ_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 SQgams_ov = model_plot_modx_gam_cyclic(
@@ -2307,7 +2210,7 @@ SQgams_ov = model_plot_modx_gam_cyclic(
   smm_result = resSQ_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = F,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -2316,14 +2219,14 @@ SQgams_ov = model_plot_modx_gam_cyclic(
 ### trait comparisons 
 
 ```{r}
-SQgroups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/sleeplnquality/menses_centered/sleeplnquality_g3_class.csv")
+SQgroups = read.csv("output/20250902/sleeplnquality/menses_centered/sleeplnquality_g3_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
 SQ_trait_sub = merge(trait, SQgroups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/sleeplnquality/trait_comparisons"
+trait_path = "output/20250902/sleeplnquality/trait_comparisons"
 ```
 
 ```{r}
@@ -2924,7 +2827,7 @@ resD11_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2937,7 +2840,7 @@ resD11_ov <- run_smm_cyclic(
   plot = T, 
   log_var = T,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2946,7 +2849,7 @@ D11_bic_result_menses <- compare_bic_cyclic(
   outcome = "drsp11_lethtired",
   centering = "menses",
   smm_results = resD11_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -2955,7 +2858,7 @@ D11_bic_result_ov <- compare_bic_cyclic(
   outcome = "drsp11_lethtired",
   centering = "ovulation",
   smm_results = resD11_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 D11gams_menses = model_plot_modx_gam_cyclic(
@@ -2964,7 +2867,7 @@ D11gams_menses = model_plot_modx_gam_cyclic(
   smm_result = resD11_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 D11gams_ov = model_plot_modx_gam_cyclic(
@@ -2973,7 +2876,7 @@ D11gams_ov = model_plot_modx_gam_cyclic(
   smm_result = resD11_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -2983,14 +2886,14 @@ D11gams_ov = model_plot_modx_gam_cyclic(
 ### trait comparisons 
 
 ```{r}
-d11groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp11_lethtired/ovulation_centered/drsp11_lethtired_g3_class.csv")
+d11groups = read.csv("output/20250902/drsp11_lethtired/ovulation_centered/drsp11_lethtired_g3_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
 D11_trait_sub = merge(trait, d11groups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp11_lethtired/trait_comparisons"
+trait_path = "output/20250902/drsp11_lethtired/trait_comparisons"
 ```
 
 
@@ -3593,7 +3496,7 @@ resD14_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -3606,7 +3509,7 @@ resD14_ov <- run_smm_cyclic(
   plot = T, 
   log_var = T,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -3615,7 +3518,7 @@ D14_bic_result_menses <- compare_bic_cyclic(
   outcome = "drsp14_sleptmore",
   centering = "menses",
   smm_results = resD14_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -3624,7 +3527,7 @@ D14_bic_result_ov <- compare_bic_cyclic(
   outcome = "drsp14_sleptmore",
   centering = "ovulation",
   smm_results = resD14_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 D14gams_menses = model_plot_modx_gam_cyclic(
@@ -3633,7 +3536,7 @@ D14gams_menses = model_plot_modx_gam_cyclic(
   smm_result = resD14_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 D14gams_ov = model_plot_modx_gam_cyclic(
@@ -3642,7 +3545,7 @@ D14gams_ov = model_plot_modx_gam_cyclic(
   smm_result = resD14_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -3652,14 +3555,14 @@ D14gams_ov = model_plot_modx_gam_cyclic(
 ### trait comparisons 
 
 ```{r}
-d14groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp14_sleptmore/ovulation_centered/drsp14_sleptmore_g3_class.csv")
+d14groups = read.csv("output/20250902/drsp14_sleptmore/ovulation_centered/drsp14_sleptmore_g3_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 
 
 D14_trait_sub = merge(trait, d14groups, by = "id")
 
-trait_path = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250902/drsp14_sleptmore/trait_comparisons"
+trait_path = "output/20250902/drsp14_sleptmore/trait_comparisons"
 ```
 
 
@@ -4260,7 +4163,7 @@ resD15_menses <- run_smm_cyclic(
   plot = T, 
   centering = "menses", #can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -4273,7 +4176,7 @@ resD15_ov <- run_smm_cyclic(
   plot = T, 
   log_var = T,
   centering = "ovulation", #can change this to "ovulation" 
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -4282,7 +4185,7 @@ D15_bic_result_menses <- compare_bic_cyclic(
   outcome = "drsp15_troublesleep",
   centering = "menses",
   smm_results = resD15_menses, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 
@@ -4291,7 +4194,7 @@ D15_bic_result_ov <- compare_bic_cyclic(
   outcome = "drsp15_troublesleep",
   centering = "ovulation",
   smm_results = resD15_ov, #put in the result object from step 3
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic"
+  save_dir = "output"
 )
 
 D15gams_menses = model_plot_modx_gam_cyclic(
@@ -4300,7 +4203,7 @@ D15gams_menses = model_plot_modx_gam_cyclic(
   smm_result = resD15_menses, #put in the result object from step 3
   centering = "menses",#can change this to "ovulation" 
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 D15gams_ov = model_plot_modx_gam_cyclic(
@@ -4309,7 +4212,7 @@ D15gams_ov = model_plot_modx_gam_cyclic(
   smm_result = resD15_ov, #put in the result object from step 3
   centering = "ovulation",#can change this to "ovulation"
   log_var = T,
-  save_dir = "~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic",
+  save_dir = "output",
 )
 
 
@@ -4318,7 +4221,7 @@ D15gams_ov = model_plot_modx_gam_cyclic(
 #### trait comparisons 
 
 ```{r}
-d15groups = read.csv("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEAR3/03_analytic_projects/CLEAR3_OURA_Sleep_Baseline/02_code_dataedits_output/sleep_SMM/cyclic/20250825/drsp15_troublesleep/menses_centered/drsp15_troublesleep_g3_class.csv")
+d15groups = read.csv("output/20250825/drsp15_troublesleep/menses_centered/drsp15_troublesleep_g3_class.csv")
 
 trait = readRDS("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CLEARCOMBINED_projects/00_CLEARTRIALS_harmonization_merging_notes/clear123_trait_scales.rds")
 

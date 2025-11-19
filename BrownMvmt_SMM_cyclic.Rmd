@@ -9,17 +9,7 @@ output: html_document
 ## 0. LOAD DATAFRAME "cycle_df_scaled"
 
 ```{r}
-# Load your data file here
-
-# Example: load("path/to/your/data.rdata")
-
-# Note: This is the path on Tory's machine (Primary user)
-load("~/Library/CloudStorage/Box-Box/00 - CLEAR Lab (Locked Folders)/02 - Data Management, Analysis, and Papers/Studies_Projects/CYCLEADHD/03_analytic_projects/CYCADHD_PRIMARY/03_code_dataedits_output/0_dataprep_output/00_cleaned_datasets/adhd_daily_scaled_20250929.rdata") 
-
-
-
-# Enter the file path for your data file; note that it must include pacts_scaling() output and there must be 5 observations per phase per person to include.
-
+cycle_df_scaled <- df
 ```
 
 
@@ -49,7 +39,7 @@ Set a brief project identifier (e.g., "CLEAR2", "CLEAR3", "TCS", "ADHDCYC").
 This will be used as a prefix for all output files to avoid confusion across studies.
 
 ```{r user-params}
-project_name <- "TESTADHD22"  # Change this to your project's short name
+project_name <- "STEPSSMM"  # Change this to your project's short name
 
 # Initialize logging with project name
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
@@ -76,17 +66,32 @@ Configure each outcome variable with its analysis settings:
 # Define outcome configurations
 # Each outcome gets individual settings for winsorization and rolling average
 outcomes_config <- data.frame(
-  outcome = c("E2", "P4", "LH", "CSS_Inatt"), 
+  outcome = c("Oura_Activity_steps"), 
               #"CSS_HypImp", "score_robot_rev", "score_pinball_rev", "DRSP_1", "DRSP_4", "DRSP7", "DRSP_22"),
-  winsorized = c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE),  # TRUE = apply winsorization
-  rolling_avg = c("5day", "5day", "3day", "3day", "3day", "3day", "3day", "3day", "3day", "3day", "3day"),  
+  winsorized = c(TRUE),  # TRUE = apply winsorization
+  rolling_avg = c("5day"),  
   stringsAsFactors = FALSE
 )
 
 # Extract the outcome list for convenience
 outcomes_to_run <- outcomes_config$outcome
 
-base_save_dir <- "~/CLEAR Lab Repositories/cycle_pipeline_template/output" # Change this to your desired output directory
+base_save_dir <- "output" # Change this to your desired output directory
+
+# 3. Create some test text
+test_message <- "Success: The output directory is configured correctly."
+
+# 4. Save the text file into the folder
+# file.path() automatically adds the correct slash (/) for your OS
+file_path <- file.path(base_save_dir, "connection_test.txt")
+writeLines(test_message, con = file_path)
+
+# 5. Confirmation
+if (file.exists(file_path)) {
+  message("Test passed! File located at: ", file_path)
+} else {
+  message("Test failed.")
+}
 ```
 
 ### Step D: Define Centering Methods
