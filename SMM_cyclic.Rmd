@@ -56,7 +56,7 @@ steps <- subset_by_phase_cyclic(
   data = df,
   outcome = "Oura_Activity_steps",
   time_var = "cyclic_time_impute",
-  min_obs = 5
+  min_obs = 3
 )
 
 steps_data_subset <-steps$data_subset
@@ -69,10 +69,10 @@ steps_data_subset <-steps$data_subset
 ressteps_menses <- run_smm_cyclic(
   data = steps_data_subset,
   outcome = "Oura_Activity_steps",
-  g = 2:3, #this will check for solutions for 2-5 groups
-  d_inter = 20,
-  k_smooth = 10,
-  plot = F, 
+  g = 2:4, #this will check for solutions for 2-5 groups
+  d_inter = 20, # number of random starts
+  k_smooth = 10, # number of knots for the cyclic spline
+  plot = F, # whether to plot the mean group trajectories
   centering = "menses", #can change this to "ovulation" 
   save_dir = "output"
 )
@@ -81,18 +81,17 @@ ressteps_menses <- run_smm_cyclic(
 ressteps_ov <- run_smm_cyclic(
   data = steps_data_subset,
   outcome = "Oura_Activity_steps",
-  g = 2:3, #this will check for solutions for 2-5 groups
-  d_inter = 20,
-  k_smooth = 10,
-  plot = F, 
+  g = 2:4, #this will check for solutions for 2-5 groups
+  d_inter = 20, # number of random starts
+  k_smooth = 10, # number of knots for the cyclic spline
+  plot = F, # whether to plot the mean group trajectories
   centering = "ovulation", #can change this to "ovulation" 
   save_dir = "output"
 )
 
-# steps_data_subset$cyclic_perc = ((steps_data_subset$cyclic_time_impute + 1) / 2)
-# steps_data_subset$cyclic_5perc = round(steps_data_subset$cyclic_perc / 0.05) * 0.05
-# 
-# steps_data_subset %>% dplyr::select(c(id, daterated, cyclic_time_impute, cyclic_perc, cyclic_5perc))
+steps_data_subset$cyclic_perc = ((steps_data_subset$cyclic_time_impute + 1) / 2)
+steps_data_subset$cyclic_5perc = round(steps_data_subset$cyclic_perc / 0.05) * 0.05
+steps_data_subset %>% dplyr::select(c(id, daterated, cyclic_time_impute, cyclic_perc, cyclic_5perc))
 ```
 
 ### Step 3: compare BIC
